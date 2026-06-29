@@ -1,0 +1,116 @@
+# ==========================================================
+# JARVIS MARK 5 - .gitignore
+# ==========================================================
+
+# -------------------------
+# Python
+# -------------------------
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+
+# -------------------------
+# Environment Variables
+# -------------------------
+.env
+.env.*
+
+# -------------------------
+# Node.js
+# -------------------------
+node_modules/
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# -------------------------
+# IDE
+# -------------------------
+.vscode/
+.idea/
+
+# -------------------------
+# Operating System
+# -------------------------
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# -------------------------
+# Runtime Logs
+# -------------------------
+*.log
+logs/
+
+# -------------------------
+# Voice / Audio Cache
+# -------------------------
+voice_cache/
+.voice_cache/
+voice_cache_*.mp3
+
+# -------------------------
+# HUD Runtime
+# -------------------------
+hud_status.json
+
+# -------------------------
+# Memory & Personal Data
+# -------------------------
+memory/
+conversations/
+mem0_db/
+
+# -------------------------
+# AI Models
+# -------------------------
+models/*.bin
+models/**/*.bin
+
+# (Keep configs, tokenizer, vocabulary, README)
+!models/**/*.json
+!models/**/*.txt
+!models/**/*.md
+!models/**/.gitattributes
+
+# -------------------------
+# Temporary Files
+# -------------------------
+*.tmp
+*.temp
+*.cache
+
+# -------------------------
+# Python Test Cache
+# -------------------------
+.pytest_cache/
+.mypy_cache/
+
+# -------------------------
+# Git
+# -------------------------
+.git/
+
+# -------------------------
+# Electron Build Output
+# -------------------------
+dist/
+build/
+out/
+
+# -------------------------
+# Local Database
+# -------------------------
+*.db
+*.sqlite
+*.sqlite3
+
+# -------------------------
+# Secrets
+# -------------------------
+secrets.json
+credentials.json

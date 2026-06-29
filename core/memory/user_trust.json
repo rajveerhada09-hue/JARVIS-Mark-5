@@ -1,0 +1,18 @@
+/*
+============================================================
+PROJECT : JARVIS MARK 5
+
+FILE    : user_trust.json
+
+PATH    : core\memory\user_trust.json
+
+PURPOSE :
+Module description pending.
+
+LAST UPDATED :
+2026-06-28
+
+============================================================
+*/
+
+{"trust": 50}
