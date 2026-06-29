@@ -10,18 +10,9 @@ PURPOSE :
 Application entry point. Boots the complete JARVIS operating system, initializes all core modules, launches the HUD and starts the voice loop.
 
 LAST UPDATED :
-2026-06-28
+2026-06-29
 
 ============================================================
-"""
-
-"""
-====================================================================================================
-PROJECT: JARVIS MARK 5 - ADVANCED NEURAL OPERATING SYSTEM
-AUTHOR: BOSS
-VERSION: 5.3.0 (SPEECH_RECOGNITION + HINGLISH)
-FILE: main.py
-====================================================================================================
 """
 
 import warnings
@@ -43,16 +34,27 @@ from colorama import init, Fore, Style
 from dotenv import load_dotenv
 
 # Core Imports
-from core.speech  import listen   # ab sr wala
+from core.speech  import listen
 from core.brain import JarvisBrain
 from core.intent_engine import IntentEngine
 from core.tool_manager import ToolManager
 from core.voice import speak, is_speaking
+from core.kernel import Kernel
+
+# Existing Modules Integration
+from core.conversation_engine import ConversationEngine
+from core.greeting_manager import GreetingManager
+from core.observer import Observer
+from core.memory.memory_engine import MemoryEngine
+from core.personality.human_layer import HumanLayer
+from core.personality.persona_engine import PersonaEngine
+from core.environment_engine import EnvironmentEngine
+from core.context_engine import ContextEngine
 
 init(autoreset=True)
 load_dotenv()
 
-# Global Brain
+# ====================== GLOBAL SYSTEM KERNEL ======================
 try:
     brain_logic = JarvisBrain()
 except Exception as e:
@@ -61,6 +63,14 @@ except Exception as e:
 
 intent_engine = IntentEngine()
 tool_manager = ToolManager()
+conversation_engine = ConversationEngine()
+greeting_manager = GreetingManager()
+memory_engine = MemoryEngine()
+observer = Observer()
+human_layer = HumanLayer()
+persona_engine = PersonaEngine()
+environment_engine = EnvironmentEngine()
+context_engine = ContextEngine()
 
 conversation_mode = False
 conversation_timeout = 0
@@ -122,7 +132,7 @@ def process_query(query: str):
             pending_action = None
             return "Previous action cancelled."
 
-    # Multi Command
+    # Multi Command Split
     commands = re.split(r"\band\b|\bthen\b", q)
     results = []
 
@@ -131,36 +141,46 @@ def process_query(query: str):
         if not cmd:
             continue
 
-            intent = intent_engine.classify(cmd)
+        # Intent + Tool
+        intent = intent_engine.classify(cmd)
+        tool_result = tool_manager.execute_intent(intent)
+        if tool_result:
+            results.append(tool_result)
+            continue
 
-            if intent["type"] == "pc":
-                pending_action = {"intent": intent}
-                return f"Confirmation required for: {intent['value']}"
+        # Brain Fallback
+        if brain_logic:
+            results.append(brain_logic.process_query(cmd))
 
-            tool_result = tool_manager.execute_intent(intent)
-            if tool_result:
-                results.append(tool_result)
-                continue
-        return " | ".join([r for r in results if r])
+    if results:
+        final_reply = " | ".join([r for r in results if r])
+        return final_reply
 
-    if brain_logic:
-        return brain_logic.process_query(q)
-
-    return "Boss, I didn't catch that clearly. Could you say that again, Boss?"
+    return "No valid command detected, Boss."
 
 # ===================================================================
-# BOOT SEQUENCE
+# BOOT SEQUENCE (Professional Orchestration)
 # ===================================================================
 def boot_sequence():
     os.system('cls' if os.name == 'nt' else 'clear')
 
     print(Fore.CYAN + Style.BRIGHT + "JARVIS MARK 5 : INITIATING MEGA CORE...")
 
+    print("[INIT] Memory Engine Ready")
+    print("[INIT] Context Engine Ready")
+    print("[INIT] Environment Engine Ready")
+    print("[INIT] Brain Ready")
+    print("[INIT] Conversation Engine Ready")
+    print("[INIT] Observer Running")
+    print("[INIT] HUD Initializing...")
+
     update_hud_state("idle", "SYSTEM ONLINE")
 
-    speak("Now may to introduce myself. I am Jarvis, a Virtual Artificial Intelligence. I was created by Rajveer to solve your problems and make your life easier. How can I help you today, Boss?")
+    # Dynamic Greeting
+    greeting = greeting_manager.get_greeting()
+    speak(greeting)
 
-    # HUD
+    # Launch Electron HUD
     try:
         hud_path = os.path.join(os.getcwd(), "hud", "electron")
         if os.path.exists(hud_path):
@@ -170,11 +190,31 @@ def boot_sequence():
         print(Fore.RED + f"[HUD ERROR] {e}")
 
 # ===================================================================
+# HTTP HANDLER FOR HUD
+# ===================================================================
+class JarvisHandler(SimpleHTTPRequestHandler):
+    def log_message(self, format, *args):
+        return
+
+    def do_GET(self):
+        if self.path == "/get_hud_data":
+            self.send_response(200)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            try:
+                with open("hud_status.json", "r", encoding="utf-8") as f:
+                    self.wfile.write(f.read().encode())
+            except:
+                self.wfile.write(json.dumps({"jarvis_state": "idle", "text": "Offline"}).encode())
+        else:
+            return super().do_GET()
+
+# ===================================================================
 # MAIN LOOP
 # ===================================================================
 if __name__ == "__main__":
     def start_server():
-        with socketserver.TCPServer(("", 8000), SimpleHTTPRequestHandler) as httpd:
+        with socketserver.TCPServer(("", 8000), JarvisHandler) as httpd:
             print(Fore.GREEN + "[SYSTEM] HUD Server Online at http://localhost:8000")
             httpd.serve_forever()
 
@@ -182,7 +222,7 @@ if __name__ == "__main__":
 
     boot_sequence()
 
-    print(Fore.GREEN + "✅ JARVIS Mark 5 Ready!")
+    print(Fore.GREEN + "✅ JARVIS Mark 5 Fully Loaded & Ready!")
 
     while True:
         if is_speaking():
@@ -190,14 +230,12 @@ if __name__ == "__main__":
             continue
 
         try:
-            print(">>> [VOICE] Listening loop ready")
             raw_input = listen()
 
             if not raw_input or raw_input.strip() == "":
-                print("[VOICE] No user input captured, restarting listen loop")
                 continue
 
-            print(f"[VOICE] USER: {raw_input}")
+            print(f"USER: {raw_input}")
 
             clean_cmd = raw_input.lower().strip()
 
@@ -215,29 +253,16 @@ if __name__ == "__main__":
             conversation_timeout = time.time() + 40
 
             if not clean_cmd:
-                print("[VOICE] No command after wake word, prompting user")
                 speak("Yes Boss?")
                 continue
 
             print(f"➤ ACTION: {clean_cmd.upper()}")
-            print("[BRAIN] Processing query")
+
             reply = process_query(clean_cmd)
 
             if reply:
-                print(f"[BRAIN] Reply generated: {reply}")
-            else:
-                print("[BRAIN] No reply generated, using fallback response")
-                reply = "I could not process that request, Boss."
-
-            update_hud_state("speaking", reply if len(reply) < 80 else reply[:80] + "...")
-            print("[DEBUG] Calling speak()")
-            speak(reply)
-            print("[DEBUG] speak() returned")  
-            print("[VOICE] Waiting for speech to finish before listening again")
-            while is_speaking():
-                time.sleep(0.1)
-            update_hud_state("idle", "Awaiting command")
-            print("[VOICE] Ready again")
+                print(f"🤖 JARVIS: {reply}")
+                speak(reply)
 
         except Exception as e:
             print(Fore.RED + "[ERROR]")
