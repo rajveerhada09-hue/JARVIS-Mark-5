@@ -18,9 +18,9 @@ LAST UPDATED :
 import webbrowser
 from typing import Any, Dict, Optional
 
-from core.browser_control import BrowserController
-from core.pc_control import open_app, pc_control_master
-from core.workspace_manager import WorkspaceManager
+from automation.browser_control import BrowserController
+from automation.pc_control import open_app, pc_control_master
+from automation.workspace_manager import WorkspaceManager
 
 
 class ToolManager:

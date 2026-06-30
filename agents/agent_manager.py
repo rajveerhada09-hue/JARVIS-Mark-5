@@ -19,8 +19,8 @@ import webbrowser
 from abc import ABC, abstractmethod
 from typing import Any, List, Optional
 
-from core.pc_control import open_app, pc_control_master
-from core.task_queue import Task
+from automation.pc_control import open_app, pc_control_master
+from agents.task_queue import Task
 
 
 class BaseAgent(ABC):

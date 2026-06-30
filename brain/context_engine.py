@@ -17,7 +17,7 @@ LAST UPDATED :
 
 from typing import Dict, Any
 
-from core.memory_manager import MemoryManager
+from memory.memory_manager import MemoryManager
 
 
 class ContextEngine:

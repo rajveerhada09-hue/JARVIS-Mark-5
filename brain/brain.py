@@ -31,16 +31,16 @@ logging.basicConfig(filename='logs/jarvis_brain.log', level=logging.INFO)
 
 from core.personality.human_layer import HumanLayer
 from core.personality.persona_engine import PersonaEngine
-from core.memory.memory_engine import MemoryEngine
-from core.conversation_engine import ConversationEngine
-from core.memory_router import MemoryRouter
-from core.context_engine import ContextEngine
-from core.knowledge_graph import KnowledgeGraph
-from core.profile_manager import ProfileManager
-from core.agent_manager import AgentManager
-from core.goal_parser import GoalParser
-from core.mission_manager import MissionManager
-from core.task_executor import TaskExecutor
+from memory.memory_engine import MemoryEngine
+from brain.conversation_engine import ConversationEngine
+from memory.memory_router import MemoryRouter
+from brain.context_engine import ContextEngine
+from brain.knowledge_graph import KnowledgeGraph
+from memory.profile_manager import ProfileManager
+from agents.agent_manager import AgentManager
+from agents.goal_parser import GoalParser
+from agents.mission_manager import MissionManager
+from agents.task_executor import TaskExecutor
 from core.intent_engine import IntentEngine
 from core.tool_manager import ToolManager
 from core.environment_engine import EnvironmentEngine

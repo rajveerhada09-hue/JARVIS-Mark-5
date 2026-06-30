@@ -22,7 +22,7 @@ import psutil
 import ctypes
 import sys
 import io
-from core.voice import speak
+from voice.voice import speak
 
 APPS = {
     "youtube": "https://www.youtube.com",

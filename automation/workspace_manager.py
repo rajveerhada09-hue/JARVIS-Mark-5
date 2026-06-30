@@ -17,7 +17,7 @@ LAST UPDATED :
 
 from typing import Optional
 
-from core.pc_control import open_app, pc_control_master
+from automation.pc_control import open_app, pc_control_master
 
 
 class WorkspaceManager:

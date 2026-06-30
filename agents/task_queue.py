@@ -19,8 +19,8 @@ import json
 from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, List, Optional
 
-from core.memory.memory_engine import MemoryEngine
-from core.planning_utils import generate_id, normalize_status, task_priority, timestamp_now
+from memory.memory_engine import MemoryEngine
+from agents.planning_utils import generate_id, normalize_status, task_priority, timestamp_now
 
 STORAGE_KEY = "planner_tasks"
 

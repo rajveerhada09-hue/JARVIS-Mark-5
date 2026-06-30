@@ -18,7 +18,7 @@ LAST UPDATED :
 from __future__ import annotations
 from typing import Any, Dict, List, Optional
 
-from core.planning_utils import generate_id, task_priority
+from agents.planning_utils import generate_id, task_priority
 
 
 class GoalParser:

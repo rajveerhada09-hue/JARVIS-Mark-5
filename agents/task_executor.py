@@ -17,11 +17,11 @@ LAST UPDATED :
 
 from typing import Any, List, Optional
 
-from core.agent_manager import AgentManager
-from core.goal_parser import GoalParser
-from core.mission_manager import MissionManager
-from core.planning_utils import timestamp_now
-from core.task_queue import Task
+from agents.agent_manager import AgentManager
+from agents.goal_parser import GoalParser
+from agents.mission_manager import MissionManager
+from agents.planning_utils import timestamp_now
+from agents.task_queue import Task
 
 
 MAX_RETRIES = 2

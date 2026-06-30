@@ -32,10 +32,11 @@ from typing import Optional
 from core.personality.persona_engine import PersonaEngine
 from core.personality.human_layer import HumanLayer
 from core.greeting_manager import time_aware_greeting, return_greeting
-from core.emotion_detector import detect_emotion
-from core.context_engine import ContextEngine
-from core.response_variations import confirm_variation, opening_variation, quick
+from brain.emotion_detector import detect_emotion
+from brain.context_engine import ContextEngine
+from brain.response_variations import confirm_variation, opening_variation, quick
 from core.importance_scorer import ImportanceScorer
+from memory.mem0_adapter import Mem0Adapter
 
 
 # ─── AI phrase blacklist (regex) ─────────────────────────────────────────────
@@ -93,7 +94,6 @@ class ConversationEngine:
     # ── Mem0 init ─────────────────────────────────────────────────────────────
     def _init_mem0(self) -> None:
         try:
-            from core.mem0_adapter import Mem0Adapter
             self._mem0       = Mem0Adapter()
             self._mem0_ready = True
         except Exception as e:

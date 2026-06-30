@@ -24,11 +24,11 @@ logger = logging.getLogger("JARVIS_CORE")
 
 try:
     # Saare modules ko yahan link kar rahe hain
-    from .brain import JarvisBrain
-    from .voice import speak
+    from brain.brain import JarvisBrain
+    from voice.voice import speak
     from .intent_engine import IntentEngine
     from .tool_manager import ToolManager
-    from .workspace_manager import WorkspaceManager
+    from automation.workspace_manager import WorkspaceManager
     from .environment_engine import EnvironmentEngine
     from .widget_manager import WidgetManager
     
