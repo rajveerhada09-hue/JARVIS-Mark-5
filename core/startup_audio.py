@@ -1,30 +1,19 @@
 import time
-import threading
-import subprocess
 import os
+from voice.voice import speak
 
-SPOTIFY_TRACK_URL = "https://open.spotify.com/track/39shmbIHICJ2Wxnk1fPSdz"
-
-def play_spotify_intro():
+def play_startup_audio():
     try:
-        # Open Spotify track
-        subprocess.Popen(f'start {SPOTIFY_TRACK_URL}', shell=True)
+        import webbrowser
 
-        # let it load
-        time.sleep(2)
+        url = "https://open.spotify.com/track/39shmbIHICJ2Wxnk1fPSdz"
+        webbrowser.open(url)
 
-        # 10 second timer
+        print("[AUDIO] Startup track launched (Spotify)")
+
         time.sleep(10)
 
-        # stop playback using media keys (Windows trick)
-        import pyautogui
-
-        pyautogui.press("playpause")
+        print("[AUDIO] 10s preview done")
 
     except Exception as e:
-        print(f"[AUDIO ERROR] {e}")
-
-
-def start_intro_audio():
-    t = threading.Thread(target=play_spotify_intro, daemon=True)
-    t.start()
+        print("[AUDIO ERROR]", e)

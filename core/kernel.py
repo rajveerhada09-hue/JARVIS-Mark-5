@@ -1,59 +1,66 @@
-"""
-============================================================
-PROJECT : JARVIS MARK 5
-
-FILE    : core/kernel.py
-
-PURPOSE : Central Orchestrator for the entire system.
-============================================================
-"""
-
-import os
-import json
-import logging
-import datetime
-import subprocess
-
-from brain.brain import JarvisBrain
+import importlib
+import traceback
 from core.intent_engine import IntentEngine
 from core.tool_manager import ToolManager
-from brain.conversation_engine import ConversationEngine
-from core.greeting_manager import GreetingManager
-from memory.memory_engine import MemoryEngine
-from core.personality.human_layer import HumanLayer
-from core.personality.persona_engine import PersonaEngine
+from brain.brain import Brain
 
 class Kernel:
+    """
+    Central orchestrator (NOT logic owner)
+    """
+
     def __init__(self):
-        self.brain = JarvisBrain()
         self.intent_engine = IntentEngine()
         self.tool_manager = ToolManager()
-        self.conversation_engine = ConversationEngine()
-        self.greeting_manager = GreetingManager()
-        self.memory = MemoryEngine()
-        self.human_layer = HumanLayer()
-        self.persona_engine = PersonaEngine()
+        self.brain = Brain()
 
-        logging.basicConfig(filename='logs/kernel.log', level=logging.INFO)
+        self.event_bus = {}
+        self._register_default_events()
 
+    # ---------------- INIT ----------------
     def initialize(self):
-        print("[KERNEL] Initializing all subsystems...")
-        self.memory.load()
-        print("[KERNEL] Memory Ready")
-        print("[KERNEL] All systems initialized.")
+        print("[KERNEL] Booting JARVIS Core Systems...")
+        self.brain.initialize() if hasattr(self.brain, "initialize") else None
+        print("[KERNEL] All systems online.")
 
-    def process_query(self, query):
-        context = self.conversation_engine.get_context(query)
-        memory_context = self.memory.get_relevant_memory(query)
+    # ---------------- EVENT SYSTEM ----------------
+    def _register_default_events(self):
+        self.event_bus = {
+            "intent": self.handle_intent,
+            "brain": self.handle_brain,
+            "tool": self.handle_tool
+        }
+
+    def emit(self, event_type, payload):
+        try:
+            handler = self.event_bus.get(event_type)
+            if handler:
+                return handler(payload)
+            return f"[KERNEL] No handler for {event_type}"
+        except Exception as e:
+            traceback.print_exc()
+            return f"[KERNEL ERROR] {e}"
+
+    # ---------------- QUERY PIPELINE ----------------
+    def process_query(self, query: str):
+        query = query.lower().strip()
 
         intent = self.intent_engine.classify(query)
-        tool_result = self.tool_manager.execute_intent(intent)
 
+        # 1. TOOL LAYER FIRST
+        tool_result = self.emit("tool", intent)
         if tool_result:
             return tool_result
 
-        raw_response = self.brain.process_query(query)
-        return self.human_layer.enhance(raw_response)
+        # 2. BRAIN LAYER SECOND
+        return self.emit("brain", query)
 
-    def get_greeting(self):
-        return self.greeting_manager.get_greeting()
+    # ---------------- HANDLERS ----------------
+    def handle_tool(self, intent):
+        return self.tool_manager.execute_intent(intent)
+
+    def handle_brain(self, query):
+        return self.brain.process_query(query)
+
+    def handle_intent(self, query):
+        return self.intent_engine.classify(query)

@@ -24,11 +24,12 @@ from http.server import SimpleHTTPRequestHandler
 import socketserver
 from colorama import init, Fore, Style
 from dotenv import load_dotenv
-from voice.voice import listen
+from voice.speech import listen
 
 # Core Imports
 from core.kernel import Kernel
 from voice.voice import speak, is_speaking
+from core.startup_audio import play_startup_audio   
 
 init(autoreset=True)
 load_dotenv()
@@ -69,16 +70,17 @@ def update_hud_state(mode="idle", text=""):
 # ===================================================================
 # BOOT SEQUENCE
 # ===================================================================
-def boot_sequence():
-    os.system('cls' if os.name == 'nt' else 'clear')
+kernel = Kernel()
 
-    print(Fore.CYAN + Style.BRIGHT + "JARVIS MARK 5 : INITIATING MEGA CORE...")
+def boot_sequence():
+    print("Booting JARVIS...")
 
     kernel.initialize()
 
-    update_hud_state("idle", "SYSTEM ONLINE")
+    # 🔥 AUDIO STARTUP
+    play_startup_audio()
 
-    speak(kernel.get_greeting())
+    speak(kernel.brain.get_greeting() if hasattr(kernel.brain, "get_greeting") else "System Online")
 
     try:
         hud_path = os.path.join(os.getcwd(), "hud", "electron")
