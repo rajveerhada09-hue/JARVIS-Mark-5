@@ -4,14 +4,7 @@ PROJECT : JARVIS MARK 5
 
 FILE    : main.py
 
-PATH    : main.py
-
-PURPOSE :
-Application entry point. Boots the complete JARVIS operating system, initializes all core modules, launches the HUD and starts the voice loop.
-
-LAST UPDATED :
-2026-06-29
-
+PURPOSE : Bootstrap layer only. Initializes kernel and runs voice loop.
 ============================================================
 """
 
@@ -20,57 +13,28 @@ warnings.filterwarnings("ignore")
 
 import threading
 import time
-import sys
 import os
+import subprocess
+import sys
 import json
 import datetime
 import traceback
-import re
-import subprocess
 
 from http.server import SimpleHTTPRequestHandler
 import socketserver
 from colorama import init, Fore, Style
 from dotenv import load_dotenv
+from voice.voice import listen
 
 # Core Imports
-from core.speech  import listen
-from core.brain import JarvisBrain
-from core.intent_engine import IntentEngine
-from core.tool_manager import ToolManager
-from core.voice import speak, is_speaking
 from core.kernel import Kernel
-
-# Existing Modules Integration
-from core.conversation_engine import ConversationEngine
-from core.greeting_manager import GreetingManager
-from core.observer import Observer
-from core.memory.memory_engine import MemoryEngine
-from core.personality.human_layer import HumanLayer
-from core.personality.persona_engine import PersonaEngine
-from core.environment_engine import EnvironmentEngine
-from core.context_engine import ContextEngine
+from voice.voice import speak, is_speaking
 
 init(autoreset=True)
 load_dotenv()
 
-# ====================== GLOBAL SYSTEM KERNEL ======================
-try:
-    brain_logic = JarvisBrain()
-except Exception as e:
-    print(Fore.RED + f"[CRITICAL] Brain failed to load: {e}")
-    brain_logic = None
-
-intent_engine = IntentEngine()
-tool_manager = ToolManager()
-conversation_engine = ConversationEngine()
-greeting_manager = GreetingManager()
-memory_engine = MemoryEngine()
-observer = Observer()
-human_layer = HumanLayer()
-persona_engine = PersonaEngine()
-environment_engine = EnvironmentEngine()
-context_engine = ContextEngine()
+# ====================== KERNEL (Central Orchestrator) ======================
+kernel = Kernel()
 
 conversation_mode = False
 conversation_timeout = 0
@@ -86,7 +50,6 @@ class SystemState:
         self.WAKE_WORDS = ["jarvis", "jarves", "jervis", "jarvice", "jarwis", "service", "garvis", "hey jarvis"]
 
 state = SystemState()
-pending_action = None
 
 def update_hud_state(mode="idle", text=""):
     try:
@@ -104,83 +67,19 @@ def update_hud_state(mode="idle", text=""):
         pass
 
 # ===================================================================
-# CENTRAL COMMAND PROCESSOR
-# ===================================================================
-def process_query(query: str):
-    global pending_action, conversation_mode, conversation_timeout
-
-    q = query.lower().strip()
-
-    state.COMMAND_COUNT += 1
-    state.LAST_QUERY = q
-    state.CURRENT_TASK = f"PROCESSING: {q}"
-
-    update_hud_state("thinking", f"Processing: {q}")
-
-    if pending_action:
-        yes = ["yes", "yes sir", "yes jarvis", "confirm", "do it"]
-        no = ["no", "cancel", "stop", "abort", "nah"]
-        if q in yes:
-            intent = pending_action["intent"]
-            pending_action = None
-            from core.pc_control import pc_control_master
-            return pc_control_master(intent["value"])
-        elif q in no:
-            pending_action = None
-            return "Operation cancelled."
-        else:
-            pending_action = None
-            return "Previous action cancelled."
-
-    # Multi Command Split
-    commands = re.split(r"\band\b|\bthen\b", q)
-    results = []
-
-    for cmd in commands:
-        cmd = cmd.strip()
-        if not cmd:
-            continue
-
-        # Intent + Tool
-        intent = intent_engine.classify(cmd)
-        tool_result = tool_manager.execute_intent(intent)
-        if tool_result:
-            results.append(tool_result)
-            continue
-
-        # Brain Fallback
-        if brain_logic:
-            results.append(brain_logic.process_query(cmd))
-
-    if results:
-        final_reply = " | ".join([r for r in results if r])
-        return final_reply
-
-    return "No valid command detected, Boss."
-
-# ===================================================================
-# BOOT SEQUENCE (Professional Orchestration)
+# BOOT SEQUENCE
 # ===================================================================
 def boot_sequence():
     os.system('cls' if os.name == 'nt' else 'clear')
 
     print(Fore.CYAN + Style.BRIGHT + "JARVIS MARK 5 : INITIATING MEGA CORE...")
 
-    print("[INIT] Memory Engine Ready")
-    print("[INIT] Context Engine Ready")
-    print("[INIT] Environment Engine Ready")
-    print("[INIT] Brain Ready")
-    print("[INIT] Conversation Engine Ready")
-    print("[INIT] Observer Running")
-    print("[INIT] HUD Initializing...")
+    kernel.initialize()
 
     update_hud_state("idle", "SYSTEM ONLINE")
 
-    # Dynamic Greeting
-    greeting = greeting_manager.get_greeting()
-    speak(greeting)
+    speak(kernel.get_greeting())
 
-    # Launch Electron HUD
     try:
         hud_path = os.path.join(os.getcwd(), "hud", "electron")
         if os.path.exists(hud_path):
@@ -189,6 +88,11 @@ def boot_sequence():
     except Exception as e:
         print(Fore.RED + f"[HUD ERROR] {e}")
 
+    try:
+        from core.kernel import Kernel
+    except Exception as e:
+        print("[KERNEL ERROR]", e)
+        exit()
 # ===================================================================
 # HTTP HANDLER FOR HUD
 # ===================================================================
@@ -258,7 +162,7 @@ if __name__ == "__main__":
 
             print(f"➤ ACTION: {clean_cmd.upper()}")
 
-            reply = process_query(clean_cmd)
+            reply = kernel.process_query(clean_cmd)
 
             if reply:
                 print(f"🤖 JARVIS: {reply}")
