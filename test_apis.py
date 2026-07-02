@@ -25,7 +25,6 @@ print("GEMINI_API_KEY     :", "✅ Present" if os.getenv("GEMINI_API_KEY") else 
 print("GROQ_API_KEY       :", "✅ Present" if os.getenv("GROQ_API_KEY") else "❌ Missing")
 print("OPENAI_API_KEY     :", "✅ Present" if os.getenv("OPENAI_API_KEY") else "❌ Missing")
 print("DEEPEEK_API_KEY    :", "✅ Present" if os.getenv("DEEPEEK_API_KEY") else "❌ Missing")
-print("ELEVENLABS_API_KEY :", "✅ Present" if os.getenv("ELEVENLABS_API_KEY") else "❌ Missing")
 
 # Test Gemini (fastest for now)
 try:

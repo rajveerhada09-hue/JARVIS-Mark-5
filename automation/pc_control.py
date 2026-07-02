@@ -34,9 +34,10 @@ APPS = {
 }
 
 def call_node_engine(command, argument=""):
-    """Python-to-Node Bridge linking with core/automation.js"""
+    """Python-to-Node Bridge linking with automation/automation.js"""
     try:
-        subprocess.Popen(['node', 'core/automation.js', command, argument], shell=True)
+        script_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'automation', 'automation.js')
+        subprocess.Popen(['node', script_path, command, argument], shell=True)
     except Exception as e:
         print(f"Bhai, Node Engine Error: {e}")
         os.system(f"start {argument}")

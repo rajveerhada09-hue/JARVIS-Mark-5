@@ -1,26 +1,31 @@
-/*
-============================================================
-PROJECT : JARVIS MARK 5
-
-FILE    : jarvis_config.json
-
-PATH    : jarvis_config.json
-
-PURPOSE :
-Module description pending.
-
-LAST UPDATED :
-2026-06-28
-
-============================================================
-*/
-
 {
     "assistant_name": "JARVIS Mark V",
     "user_name": "Rajveer",
-    "wake_word": "jarvis",
-    "model_primary": "gemini-pro",
-    "model_fallback": "gpt-4-mini",
-    "voice_accent": "en-uk",
-    "memory_file": "memory_db.json"
+    "wake_words": [
+        "jarvis",
+        "jarves",
+        "jarvice",
+        "jarwis",
+        "jervis",
+        "garvis",
+        "hey jarvisjarvice"
+    ],
+    "model_primary": "gemini-2.5-flash",
+    "model_fallback": "",
+    "voice_provider": "",
+    "voice_id": "",
+    "voice_rate": 135,
+    "voice_volume": 1.0,
+    "voice_interrupt": true,
+    "voice_cache_dir": ".voice_cache",
+    "startup_audio": true,
+    "startup_audio_volume": 25,
+    "memory_enabled": true,
+    "memory_file": "memory_db.json",
+    "hud_enabled": true,
+    "hud_port": 8000,
+    "offline_mode": false,
+    "cache_dir": ".voice_cache",
+    "log_dir": "logs",
+    "models_dir": "models"
 }

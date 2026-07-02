@@ -66,7 +66,7 @@ PURPOSES = {
         "Controls voice playback, speech queue, interruption, resume and speaking state.",
 
     "tts.py":
-        "Generates speech using ElevenLabs and manages audio synthesis.",
+        
 
     "speech.py":
         "Captures microphone input and converts speech into text.",

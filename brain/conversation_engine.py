@@ -120,6 +120,10 @@ class ConversationEngine:
         q_raw = query.strip()
         q     = q_raw.lower()
 
+        topic = self._infer_topic(q_raw)
+        if topic:
+            self.memory.remember("active_topic", topic)
+
         # 1. Mode switching (unchanged)
         if any(x in q for x in ["switch to friendly", "friendly mode", "normal mode"]):
             return self.brain.switch_mode("friendly")
@@ -188,6 +192,11 @@ class ConversationEngine:
 
         # 8. Build context (original + Mem0 semantic recall added)
         convo_context = self._build_context(q_raw)
+        active_topic = self._safe_recall("active_topic", "")
+        if topic and active_topic and topic != active_topic:
+            convo_context = f"Current topic: {topic}\n{convo_context}" if convo_context else f"Current topic: {topic}"
+        elif topic:
+            convo_context = f"Current topic: {topic}\n{convo_context}" if convo_context else f"Current topic: {topic}"
         last_cmd      = self._safe_recall("last_command", "")
         last_file     = self._safe_recall("last_file", "")
         style_hints   = self.persona.style_injection()
@@ -207,6 +216,8 @@ class ConversationEngine:
         self._thinking_delay(complexity)
 
         # 10. LLM call (original preserved)
+        if self._should_ask_follow_up(q_raw, active_topic):
+            q_raw = f"{q_raw} (context: {active_topic})"
         raw_response = self.brain._local_llm_response(q_raw, extra_context=extra)
 
         # 11. Scripture guidance (original preserved)
@@ -224,6 +235,7 @@ class ConversationEngine:
         metadata = {
             "detected_mode": detected,
             "last_address":  self._safe_recall("last_address", None),
+            "active_topic":  topic or active_topic,
         }
         final = self.human.enhance(raw_response, metadata=metadata)
 
@@ -393,6 +405,30 @@ class ConversationEngine:
                 "Aam taur pe clarity action se aati hai."
             )
         return ""
+
+    def _infer_topic(self, text: str) -> str:
+        lowered = (text or "").lower()
+        if any(x in lowered for x in ["portfolio", "animation", "website", "ui", "design", "landing page", "resume"]):
+            return "portfolio"
+        if any(x in lowered for x in ["voice", "speech", "tts", "wake word", "mic", "audio"]):
+            return "voice"
+        if any(x in lowered for x in ["code", "python", "bug", "debug", "program", "implementation", "repo", "commit"]):
+            return "coding"
+        if any(x in lowered for x in ["hud", "widget", "ui", "interface", "screen"]):
+            return "hud"
+        if any(x in lowered for x in ["jarvis", "assistant", "companion", "personality", "conversation"]):
+            return "jarvis"
+        return ""
+
+    def _should_ask_follow_up(self, text: str, active_topic: str) -> bool:
+        lowered = (text or "").lower()
+        if active_topic:
+            return False
+        if any(x in lowered for x in ["improve", "fix", "change", "update", "make", "add", "build"]):
+            return False if len(lowered.split()) <= 3 else True
+        if len(lowered.split()) <= 4:
+            return False
+        return ("it" in lowered or "that" in lowered or "this" in lowered) and ("can you" in lowered or "could you" in lowered or "would you" in lowered)
 
     # ── HELPERS ───────────────────────────────────────────────────────────────
     def _remember_address(self, greeting: str) -> None:

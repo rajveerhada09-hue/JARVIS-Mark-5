@@ -4,155 +4,146 @@ PROJECT : JARVIS MARK 5
 
 FILE    : main.py
 
-PURPOSE : Bootstrap layer only. Initializes kernel and runs voice loop.
+PURPOSE : Bootstrap layer only. Initializes the kernel and runs the voice loop.
 ============================================================
 """
 
-import warnings
-warnings.filterwarnings("ignore")
-
-import threading
-import time
+import json
 import os
+import signal
 import subprocess
 import sys
-import json
-import datetime
+import threading
+import time
 import traceback
-
+import warnings
 from http.server import SimpleHTTPRequestHandler
-import socketserver
-from colorama import init, Fore, Style
+from socketserver import TCPServer
+
+from colorama import Fore, init
 from dotenv import load_dotenv
-from voice.speech import listen
 
-# Core Imports
 from core.kernel import Kernel
-from voice.voice import speak, is_speaking
-from core.startup_audio import play_startup_audio   
+from core.startup_audio import play_startup_audio
+from voice.speech import listen
+from voice.voice import is_speaking, speak
 
+warnings.filterwarnings("ignore")
 init(autoreset=True)
 load_dotenv()
 
-# ====================== KERNEL (Central Orchestrator) ======================
-kernel = Kernel()
+CONFIG_PATH = "jarvis_config.json"
+HUD_SERVER_PORT = 8000
+DEFAULT_WAKE_WORDS = ["jarvis", "jarves", "jervis", "jarvice", "jarwis", "service", "garvis", "hey jarvis"]
 
+kernel = Kernel()
+stop_event = threading.Event()
 conversation_mode = False
 conversation_timeout = 0
 
-class SystemState:
-    def __init__(self):
-        self.HUD_TEXT = "Systems Online Boss."
-        self.JARVIS_MODE = "STANDBY"
-        self.CURRENT_TASK = "IDLE"
-        self.START_TIME = time.time()
-        self.COMMAND_COUNT = 0
-        self.LAST_QUERY = ""
-        self.WAKE_WORDS = ["jarvis", "jarves", "jervis", "jarvice", "jarwis", "service", "garvis", "hey jarvis"]
 
-state = SystemState()
-
-def update_hud_state(mode="idle", text=""):
+def load_config():
     try:
-        state.JARVIS_MODE = mode
-        state.HUD_TEXT = text
-        data = {
-            "jarvis_state": mode,
-            "text": text,
-            "current_task": state.CURRENT_TASK,
-            "uptime": str(datetime.timedelta(seconds=int(time.time() - state.START_TIME)))
-        }
-        with open("hud_status.json", "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=4)
-    except:
-        pass
+        with open(CONFIG_PATH, "r", encoding="utf-8") as handle:
+            return json.load(handle)
+    except Exception:
+        return {}
 
-# ===================================================================
-# BOOT SEQUENCE
-# ===================================================================
-kernel = Kernel()
 
-def boot_sequence():
-    print("Booting JARVIS...")
+def start_hud_server():
+    class JarvisHandler(SimpleHTTPRequestHandler):
+        def log_message(self, format, *args):
+            return
 
-    kernel.initialize()
+        def do_GET(self):
+            if self.path == "/get_hud_data":
+                self.send_response(200)
+                self.send_header("Content-type", "application/json")
+                self.end_headers()
+                try:
+                    with open("hud_status.json", "r", encoding="utf-8") as handle:
+                        self.wfile.write(handle.read().encode())
+                except Exception:
+                    self.wfile.write(json.dumps({"jarvis_state": "idle", "text": "Offline"}).encode())
+            else:
+                return super().do_GET()
 
-    # 🔥 AUDIO STARTUP
-    play_startup_audio()
+    try:
+        with TCPServer(("", HUD_SERVER_PORT), JarvisHandler) as httpd:
+            print(Fore.GREEN + f"[SYSTEM] HUD Server Online at http://localhost:{HUD_SERVER_PORT}")
+            httpd.serve_forever()
+    except Exception as exc:
+        print(Fore.RED + f"[HUD SERVER ERROR] {exc}")
 
-    speak(kernel.brain.get_greeting() if hasattr(kernel.brain, "get_greeting") else "System Online")
 
+def launch_hud():
     try:
         hud_path = os.path.join(os.getcwd(), "hud", "electron")
         if os.path.exists(hud_path):
             subprocess.Popen(["npm", "start"], cwd=hud_path, shell=True)
             print(Fore.GREEN + "[HUD] Electron HUD launched.")
-    except Exception as e:
-        print(Fore.RED + f"[HUD ERROR] {e}")
+    except Exception as exc:
+        print(Fore.RED + f"[HUD ERROR] {exc}")
+
+
+def start_startup_audio():
+    threading.Thread(target=play_startup_audio, daemon=True).start()
+
+
+def boot_sequence(config):
+    print("Booting JARVIS...")
+
+    kernel.initialize()
+    start_startup_audio()
 
     try:
-        from core.kernel import Kernel
-    except Exception as e:
-        print("[KERNEL ERROR]", e)
-        exit()
-# ===================================================================
-# HTTP HANDLER FOR HUD
-# ===================================================================
-class JarvisHandler(SimpleHTTPRequestHandler):
-    def log_message(self, format, *args):
-        return
-
-    def do_GET(self):
-        if self.path == "/get_hud_data":
-            self.send_response(200)
-            self.send_header("Content-type", "application/json")
-            self.end_headers()
-            try:
-                with open("hud_status.json", "r", encoding="utf-8") as f:
-                    self.wfile.write(f.read().encode())
-            except:
-                self.wfile.write(json.dumps({"jarvis_state": "idle", "text": "Offline"}).encode())
+        if hasattr(kernel.brain, "get_greeting"):
+            speak(kernel.brain.get_greeting())
         else:
-            return super().do_GET()
+            speak("System Online")
+    except Exception as exc:
+        print(Fore.YELLOW + f"[BOOT] Greeting skipped: {exc}")
 
-# ===================================================================
-# MAIN LOOP
-# ===================================================================
-if __name__ == "__main__":
-    def start_server():
-        with socketserver.TCPServer(("", 8000), JarvisHandler) as httpd:
-            print(Fore.GREEN + "[SYSTEM] HUD Server Online at http://localhost:8000")
-            httpd.serve_forever()
+    launch_hud()
+    return True
 
-    threading.Thread(target=start_server, daemon=True).start()
 
-    boot_sequence()
+def graceful_shutdown():
+    print(Fore.YELLOW + "[SYSTEM] Shutting down...")
+    try:
+        kernel.shutdown()
+    except Exception:
+        pass
+    stop_event.set()
 
-    print(Fore.GREEN + "✅ JARVIS Mark 5 Fully Loaded & Ready!")
 
-    while True:
+def handle_shutdown(signum, frame):
+    graceful_shutdown()
+
+
+def run_voice_loop(wake_words):
+    global conversation_mode, conversation_timeout
+
+    while not stop_event.is_set():
         if is_speaking():
             time.sleep(0.1)
             continue
 
         try:
             raw_input = listen()
-
-            if not raw_input or raw_input.strip() == "":
+            if not raw_input or not raw_input.strip():
                 continue
 
             print(f"USER: {raw_input}")
-
             clean_cmd = raw_input.lower().strip()
 
             current_time = time.time()
-
-            is_wake = (conversation_mode and current_time < conversation_timeout) or any(word in clean_cmd for word in state.WAKE_WORDS)
+            is_wake = (conversation_mode and current_time < conversation_timeout) or any(word in clean_cmd for word in wake_words)
 
             if not is_wake:
                 continue
 
-            for word in state.WAKE_WORDS:
+            for word in wake_words:
                 clean_cmd = clean_cmd.replace(word, "").strip()
 
             conversation_mode = True
@@ -163,13 +154,38 @@ if __name__ == "__main__":
                 continue
 
             print(f"➤ ACTION: {clean_cmd.upper()}")
-
             reply = kernel.process_query(clean_cmd)
 
             if reply:
                 print(f"🤖 JARVIS: {reply}")
                 speak(reply)
 
-        except Exception as e:
+        except KeyboardInterrupt:
+            break
+        except Exception:
             print(Fore.RED + "[ERROR]")
             traceback.print_exc()
+
+
+def main():
+    config = load_config()
+    wake_words = config.get("wake_words", DEFAULT_WAKE_WORDS)
+
+    signal.signal(signal.SIGINT, handle_shutdown)
+    signal.signal(signal.SIGTERM, handle_shutdown)
+
+    threading.Thread(target=start_hud_server, daemon=True).start()
+    boot_sequence(config)
+
+    print(Fore.GREEN + "✅ JARVIS Mark 5 Fully Loaded & Ready!")
+    run_voice_loop(wake_words)
+    graceful_shutdown()
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except KeyboardInterrupt:
+        graceful_shutdown()
+    finally:
+        sys.exit(0)

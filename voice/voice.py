@@ -21,7 +21,7 @@ CHANGES vs original:
        resume_speech()
        clear_resume_buffer()
        has_pending_resume()
-  6. All original threading, queue, ElevenLabs, pygame, pyttsx3 logic
+  6. All original threading, queue, , pygame, pyttsx3 logic
      preserved exactly — only additions, no removals.
 ============================================================
 """
@@ -35,7 +35,6 @@ from queue import Queue, Empty
 
 import pygame
 import pyttsx3
-from elevenlabs.client import ElevenLabs
 from dotenv import load_dotenv
 from colorama import Fore, init
 
@@ -43,14 +42,6 @@ init(autoreset=True)
 load_dotenv()
 
 # ── Init (original) ───────────────────────────────────────────────────────────
-try:
-    api_key = os.getenv("ELEVENLABS_API_KEY")
-    client  = ElevenLabs(api_key=api_key) if api_key else None
-except Exception as e:
-    print(f"{Fore.RED}ElevenLabs Init Error: {e}")
-    client = None
-
-VOICE_ID = os.getenv("VOICE_ID", "nPczCjzI2devNBz1zQrb")
 
 engine = pyttsx3.init("sapi5")
 voices = engine.getProperty("voices")
@@ -58,19 +49,23 @@ engine.setProperty("voice", voices[0].id)
 engine.setProperty("rate", 135)
 
 if not pygame.mixer.get_init():
-    pygame.mixer.init()
+    pygame.mixer.init(
+    frequency=44100,
+    size=-16,
+    channels=2,
+    buffer=512
+)
 
 # ── Core state (original) ─────────────────────────────────────────────────────
 voice_queue    = Queue()
 stop_event     = threading.Event()
 speaking_event = threading.Event()
 mic_interrupt  = threading.Event()
-OFFLINE_MODE   = False
 
 # ── Resume buffer (new) ───────────────────────────────────────────────────────
 # Stores (list_of_sentences, index_of_next_sentence_to_speak)
 _resume_lock   = threading.Lock()
-_resume_buffer: tuple = ()   # empty = nothing to resume
+_resume_buffer = None   # empty = nothing to resume
 
 
 def _split_sentences(text: str) -> list:
@@ -261,6 +256,9 @@ def _run_speak(text: str, intent: str = "chat", emotion: str = "neutral") -> Non
                     _store_resume(sentences, i)
                     return
                 engine.say(sentence)
+                for s in sentences:
+                    engine.say(s)
+
                 engine.runAndWait()
             return
 
@@ -309,7 +307,10 @@ def _run_speak(text: str, intent: str = "chat", emotion: str = "neutral") -> Non
                 time.sleep(0.04)
 
                 if os.path.exists(file_path):
-                    os.remove(file_path)
+                    try:
+                        os.remove(file_path)
+                    except:
+                        pass
 
             except Exception as e:
                 print(f"{Fore.RED}[VOICE SENTENCE ERROR] {e}")
@@ -355,21 +356,6 @@ def _listen_for_interrupt() -> None:
         except Exception:
             pass
         time.sleep(0.1)
-
-
-# ── TTS text cleaner (original — unchanged) ───────────────────────────────────
-def clean_for_tts(text: str) -> str:
-    replacements = {
-        "gui":    "G U I",    "cpu":  "C P U",  "ram":  "R A M",
-        "api":    "A P I",    "ai":   "A I",     "gpu":  "G P U",
-        "jarvis": "Jarvis",   "gpt":  "G P T",   "ui":   "U I",
-        "html":   "H T M L",  "css":  "C S S",   "json": "J S O N",
-    }
-    for k, v in replacements.items():
-        text = text.replace(k, v)
-        text = text.replace(k.upper(), v)
-        text = text.replace(k.title(), v)
-    return text
 
 
 # ── Start background threads (original) ───────────────────────────────────────

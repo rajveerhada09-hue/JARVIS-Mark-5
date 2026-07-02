@@ -19,11 +19,12 @@ import pyautogui
 import os
 import requests
 from PIL import Image
-from google import genai
 from dotenv import load_dotenv
 
+from utils.providers import build_provider_client
+
 load_dotenv()
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+client = build_provider_client("gemini")
 
 # PHONE_SCREEN_URL: Ye wo URL hoga jo tera phone screen share karte waqt dega
 PHONE_IP = "192.168.1.XX" # Apne phone ka IP yahan dalna
