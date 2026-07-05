@@ -4,7 +4,7 @@ PROJECT : JARVIS MARK 5
 
 FILE    : visualizer.py
 
-PATH    : core\visualizer.py
+PATH    : vision\visualizer.py
 
 PURPOSE :
 Module description pending.

@@ -4,10 +4,10 @@ PROJECT : JARVIS MARK 5
 
 FILE    : vision.py
 
-PATH    : core\vision.py
+PATH    : vision\vision.py
 
 PURPOSE :
-Processes webcam input and computer vision tasks.
+        computer vision tasks.
 
 LAST UPDATED :
 2026-06-28
