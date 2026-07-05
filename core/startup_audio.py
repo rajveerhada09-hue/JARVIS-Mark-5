@@ -1,7 +1,6 @@
 import os
 import subprocess
 import threading
-import time
 import webbrowser
 
 
@@ -27,7 +26,6 @@ def _launch_spotify_desktop():
 
         if spotify_path:
             subprocess.Popen([spotify_path, "--start-minimized"], shell=True)
-            time.sleep(1.0)
             return True
 
         return False
@@ -56,9 +54,13 @@ def _run_startup_audio():
         print("[AUDIO] Startup track launched (Spotify)")
         _set_spotify_volume(True)
 
-        end_time = time.time() + 10.0
-        while time.time() < end_time and not _STARTUP_AUDIO_STOP_EVENT.is_set():
-            time.sleep(0.2)
+        while not _STARTUP_AUDIO_STOP_EVENT.is_set():
+            if os.name == "nt":
+                subprocess.run(["tasklist", "/FI", "IMAGENAME eq Spotify.exe"], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            else:
+                subprocess.run(["pgrep", "-f", "Spotify"], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+            _STARTUP_AUDIO_STOP_EVENT.wait(5)
 
         if not _STARTUP_AUDIO_STOP_EVENT.is_set():
             stop_startup_audio()
