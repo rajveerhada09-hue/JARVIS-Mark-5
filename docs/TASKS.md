@@ -98,7 +98,7 @@ Voice
 
 ## Output
 
-* [/] ElevenLabs
+* [/]
 * [/] Resume After Interrupt
 * [ ] Streaming Voice
 * [ ] Emotion Based Voice

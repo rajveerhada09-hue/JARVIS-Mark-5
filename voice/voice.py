@@ -2,7 +2,7 @@
 ============================================================
 PROJECT : JARVIS MARK 5
 FILE    : voice.py
-PATH    : core\voice.py
+PATH    : voice/newvoice.py
 
 CHANGES vs original:
   1. Added interrupt/resume system:
@@ -30,31 +30,51 @@ import os
 import re
 import time
 import threading
+import uuid
 import traceback
 from queue import Queue, Empty
+
 
 import pygame
 import pyttsx3
 from dotenv import load_dotenv
+from voice.cache_manager import VoiceCacheManager
+from elevenlabs import ElevenLabs
+from pathlib import Path
 from colorama import Fore, init
 
 init(autoreset=True)
 load_dotenv()
 
 # ── Init (original) ───────────────────────────────────────────────────────────
+try:
+    api_key = os.getenv("ELEVENLABS_API_KEY")
+    client  = ElevenLabs(api_key=api_key) if api_key else None
+except Exception as e:
+    print(f"{Fore.RED}ElevenLabs Init Error: {e}")
+    client = None
 
+VOICE_ID = os.getenv("VOICE_ID", "nPczCjzI2devNBz1zQrb")
+
+OFFLINE_MODE = client is None
 engine = pyttsx3.init("sapi5")
 voices = engine.getProperty("voices")
 engine.setProperty("voice", voices[0].id)
 engine.setProperty("rate", 135)
+CACHE_DIR = Path("voice/cache")
+CACHE_DIR.mkdir(parents=True, exist_ok=True)
+cache = VoiceCacheManager()
 
 if not pygame.mixer.get_init():
-    pygame.mixer.init(
-    frequency=44100,
-    size=-16,
-    channels=2,
-    buffer=512
-)
+    try:
+        pygame.mixer.init(
+            frequency=44100,
+            size=-16,
+            channels=2,
+            buffer=512
+        )
+    except pygame.error as e:
+        print(f"{Fore.RED}[VOICE] Pygame init failed: {e}")
 
 # ── Core state (original) ─────────────────────────────────────────────────────
 voice_queue    = Queue()
@@ -79,14 +99,13 @@ def _store_resume(sentences: list, next_index: int) -> None:
     with _resume_lock:
         if next_index < len(sentences):
             _resume_buffer = (sentences, next_index)
-        else:
-            _resume_buffer = ()
+            
 
 
 def _clear_resume() -> None:
     global _resume_buffer
     with _resume_lock:
-        _resume_buffer = ()
+        _resume_buffer = None
 
 
 # ── VoiceBrain (original — unchanged) ────────────────────────────────────────
@@ -125,7 +144,7 @@ brain = VoiceBrain()
 
 def speak(text: str, intent: str = "chat", priority: bool = False) -> None:
     """Original signature preserved."""
-    text = clean_for_tts(str(text))
+    
     if not text:
         print(f"{Fore.YELLOW}[TTS] No text to speak")
         return
@@ -156,6 +175,7 @@ def stop_speaking() -> None:
     stop_event.set()
     try:
         pygame.mixer.music.stop()
+        pygame.mixer.music.unload()
     except Exception:
         pass
     _clear_queue()
@@ -233,7 +253,6 @@ def _run_speak(text: str, intent: str = "chat", emotion: str = "neutral") -> Non
     mic_interrupt.clear()
 
     sentences = _split_sentences(text)
-    total     = len(sentences)
 
     try:
         safe_text = str(text)
@@ -248,21 +267,6 @@ def _run_speak(text: str, intent: str = "chat", emotion: str = "neutral") -> Non
             "light":     {"stability": 0.5,  "style": 0.8},
         }.get(emotion, {"stability": 0.75, "style": 0.3})
 
-        # ── OFFLINE fallback ──────────────────────────────────────────────────
-        if OFFLINE_MODE or not client:
-            print(f"{Fore.BLUE}[OFFLINE] JARVIS: {safe_text}")
-            for i, sentence in enumerate(sentences):
-                if stop_event.is_set() or mic_interrupt.is_set():
-                    _store_resume(sentences, i)
-                    return
-                engine.say(sentence)
-                for s in sentences:
-                    engine.say(s)
-
-                engine.runAndWait()
-            return
-
-        # ── ONLINE (ElevenLabs sentence by sentence) ──────────────────────────
         print(f"{Fore.CYAN}🤖 JARVIS: {safe_text}")
 
         for i, sentence in enumerate(sentences):
@@ -270,60 +274,77 @@ def _run_speak(text: str, intent: str = "chat", emotion: str = "neutral") -> Non
                 _store_resume(sentences, i)
                 return
 
-            try:
-                audio_gen = client.text_to_speech.convert(
-                    voice_id=VOICE_ID,
-                    text=sentence,
-                    model_id="eleven_turbo_v2_5",
-                    output_format="mp3_44100_128",
-                    voice_settings={
-                        "stability":        voice_style["stability"],
-                        "similarity_boost": 0.90,
-                        "style":            voice_style["style"],
-                        "use_speaker_boost": True,
-                    },
-                )
+            # === CACHE CHECK ===
+            hash_key = cache.generate_hash(
+                sentence,
+                VOICE_ID,
+                "eleven_turbo_v2_5",
+                emotion
+            )
 
-                file_path = f"voice_cache_{time.time_ns()}.mp3"
-                with open(file_path, "wb") as f:
-                    for chunk in audio_gen:
-                        if stop_event.is_set() or mic_interrupt.is_set():
-                            _store_resume(sentences, i)
-                            return
-                        if chunk:
-                            f.write(chunk)
+            cached = cache.get_cached_file(hash_key)
 
-                pygame.mixer.music.load(file_path)
-                pygame.mixer.music.play()
-
-                while pygame.mixer.music.get_busy():
-                    if stop_event.is_set() or mic_interrupt.is_set():
-                        pygame.mixer.music.stop()
-                        _store_resume(sentences, i + 1)
-                        return
-                    time.sleep(0.05)
-
-                pygame.mixer.music.unload()
-                time.sleep(0.04)
-
-                if os.path.exists(file_path):
-                    try:
-                        os.remove(file_path)
-                    except:
-                        pass
-
-            except Exception as e:
-                print(f"{Fore.RED}[VOICE SENTENCE ERROR] {e}")
-                # Fallback for this sentence
+            if cached and cached.exists():
+                print(f"{Fore.BLUE}[CACHE] Playing cached: {sentence[:60]}...")
+                pygame.mixer.music.load(str(cached))
+            else:
+                print(f"{Fore.YELLOW}[TTS] Generating new audio...")
                 try:
+                    audio_gen = client.text_to_speech.convert(
+                        text=sentence,
+                        voice_id=VOICE_ID,
+                        model_id="eleven_turbo_v2_5",
+                        output_format="mp3_44100_128",
+                        voice_settings={
+                            "stability": voice_style["stability"],
+                            "similarity_boost": 0.90,
+                            "style": voice_style["style"],
+                            "use_speaker_boost": True,
+                        },
+                    )
+
+                    file_path = CACHE_DIR / f"{time.time_ns()}.mp3"
+                    with open(file_path, "wb") as f:
+                        for chunk in audio_gen:
+
+                            if stop_event.is_set() or mic_interrupt.is_set():
+                                _store_resume(sentences, i)
+                                return
+
+                            if chunk:
+                                f.write(chunk)
+
+                    file_path = cache.save_cached_file(
+                                hash_key,
+                                file_path,
+                                sentence,
+                                VOICE_ID,
+                                "eleven_turbo_v2_5",
+                                emotion,
+                            )
+                    pygame.mixer.music.load(str(file_path))
+
+                except Exception as e:
+                    print(f"{Fore.RED}[ElevenLabs Error] {e}")
                     engine.say(sentence)
                     engine.runAndWait()
-                except Exception:
-                    pass
+                    continue
 
-        # All sentences played — clear resume buffer
+            # === PLAYBACK ===
+            pygame.mixer.music.play()
+
+            while pygame.mixer.music.get_busy():
+                if stop_event.is_set() or mic_interrupt.is_set():
+                    pygame.mixer.music.stop()
+                    pygame.mixer.music.unload()
+                    _store_resume(sentences, i)
+                    return
+                time.sleep(0.05)
+
+            pygame.mixer.music.unload()
+
+        # All sentences played
         _clear_resume()
-        print(f"{Fore.CYAN}[TTS] Playback complete")
 
     except Exception as e:
         print(f"{Fore.RED}[VOICE ERROR] {e}")
@@ -333,9 +354,10 @@ def _run_speak(text: str, intent: str = "chat", emotion: str = "neutral") -> Non
             engine.runAndWait()
         except Exception as tts_e:
             print(f"{Fore.RED}[VOICE FALLBACK ERROR] {tts_e}")
+
     finally:
         speaking_event.clear()
-        print(f"{Fore.CYAN}[TTS] Speaking event cleared")
+        print(f"{Fore.CYAN}[TTS] Playback complete")
 
 
 # ── Interrupt listener (original — unchanged) ─────────────────────────────────

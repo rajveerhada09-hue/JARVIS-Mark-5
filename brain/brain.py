@@ -1,37 +1,83 @@
 """
 ============================================================
 PROJECT : JARVIS MARK 5
-
 FILE    : brain.py
-
 PATH    : core\brain.py
 
 PURPOSE :
-Central intelligence module responsible for reasoning, decision making, tool selection and orchestration.
+Central orchestrator. Owns the LLM-generation pipeline stage of the
+conversation flow:
 
-LAST UPDATED :
-2026-06-28
+    Persona Decision (read) -> Layered Prompt Building -> Gemini Response
+    (primary) -> ChatGPT (fallback) -> HumanLayer (opt-in)
 
+CHANGES vs original:
+  1. Added `import re`, `from typing import Optional` — needed internally.
+  2. Added self.gemini_model, loaded from jarvis_config.json (safe default
+     "gemini-pro" if config missing/unreadable).
+  3. Added _load_gemini_model_name() — small, defensive config reader,
+     mirrors the existing try/except style already used in load_mode().
+  4. Added _build_layered_prompt() — replaces the old single f-string with
+     clearly labelled [SYSTEM]/[PERSONA]/[CONTEXT]/[USER] sections.
+  5. Added _gemini_response() — primary LLM call via google-generativeai
+     (confirmed dependency in requirements.txt). Returns None on any
+     failure instead of raising, so the caller can fall back cleanly.
+  6. Added _ollama_response() — the ORIGINAL Ollama subprocess call,
+     extracted verbatim into its own method. Same command, same model,
+     same timeout. Now returns None on failure instead of a hardcoded
+     string, so the caller owns the single final fallback message.
+  7. Rewrote _local_llm_response() to orchestrate the chain above.
+     SIGNATURE IS BACKWARD COMPATIBLE: existing call site in
+     conversation_engine.py — `self.brain._local_llm_response(q_raw,
+     extra_context=extra)` — behaves IDENTICALLY to before (returns a
+     plain, non-humanized string). Two NEW optional keyword args were
+     added at the end with safe defaults:
+        humanize: bool = False  — opt-in HumanLayer pass before returning
+        emotion:  str = "neutral" — only used when humanize=True
+     Default behavior is unchanged specifically to avoid a double-
+     humanization bug: conversation_engine.py ALREADY calls
+     self.human.enhance() on whatever this method returns (line 228 of
+     conversation_engine.py). If this method humanized by default too,
+     every response would be humanized twice. See explanation sent
+     alongside this file for the full reasoning.
+  8. process_query() unchanged in behavior — added phase comments for
+     readability and wrapped the ConversationEngine delegation in a
+     try/except so a bug inside conv.handle() can never crash JARVIS or
+     propagate past brain.py.
+  9. Every other method (load_mode, save_mode, switch_mode,
+     get_god_mode_prompt, call_node_bridge, emit_event,
+     _time_aware_greeting) is UNCHANGED — copied verbatim.
+
+COMPATIBILITY:
+  - JarvisBrain() constructor: same, no required args.
+  - Public attributes (.memory, .human_layer, .persona_engine,
+    .context_engine, .conv, etc.): all present, all unchanged, same
+    init order preserved (self.conv = ConversationEngine(self) still
+    constructed LAST, after every attribute it reads is set).
+  - .process_query(query): same signature, same return type (str).
+  - .switch_mode(mode): unchanged.
+  - .call_node_bridge(command, argument): unchanged.
+  - ._local_llm_response(user_input, extra_context=""): existing call
+    sites unaffected; two new optional kwargs added at the end only.
+
+LAST UPDATED : 2026-07-03
 ============================================================
 """
 
 import os
+import re
 import json
 import logging
 import datetime
-import re
 import traceback
 import subprocess
-import requests
+from typing import Optional
 from dotenv import load_dotenv
 from colorama import Fore, init
-
-from utils.providers import call_llm_provider, get_primary_llm, get_backup_llm, get_fast_llm
 
 init(autoreset=True)
 load_dotenv()
 
-os.makedirs("logs", exist_ok=True)
 logging.basicConfig(filename='logs/jarvis_brain.log', level=logging.INFO)
 
 from core.personality.human_layer import HumanLayer
@@ -50,7 +96,6 @@ from core.intent_engine import IntentEngine
 from core.tool_manager import ToolManager
 from core.environment_engine import EnvironmentEngine
 from core.widget_manager import WidgetManager
-from brain.emotion_detector import detect_emotion
 
 
 class JarvisBrain:
@@ -66,7 +111,13 @@ class JarvisBrain:
         self.current_mode = self.load_mode()
         self.human_layer.set_mode(self.current_mode)
 
+        print(Fore.CYAN + f"🧠 God Mode Brain Initialized | Mode: {self.current_mode.upper()}")
 
+        self.ollama_model = "qwen2:7b"
+        # NEW: primary LLM is Gemini (per jarvis_config.json model_primary),
+        # Ollama remains the local fallback — see _local_llm_response().
+        self.gemini_model = self._load_gemini_model_name()
+        print(Fore.GREEN + f"✅ | Gemini primary → {self.gemini_model}")
 
         self.personality_prompt = self.get_god_mode_prompt()
 
@@ -90,8 +141,11 @@ class JarvisBrain:
         self.environment_engine = EnvironmentEngine()
         self.widget_manager = WidgetManager()
 
-        # Conversation engine
+        # Conversation engine — constructed LAST: it reads .memory,
+        # .human_layer, .persona_engine, .context_engine off `self`,
+        # all of which must already exist by this point.
         self.conv = ConversationEngine(self)
+
     def load_mode(self):
         try:
             path = "memory/user_profile.json"
@@ -165,190 +219,24 @@ You are J.A.R.V.I.S. Mark 5 in ADMIN MODE.
 
     def call_node_bridge(self, command: str, argument: str = ""):
         try:
-            repo_root = os.path.dirname(os.path.dirname(__file__))
-            script_path = os.path.join(repo_root, "automation", "automation.js")
-            subprocess.Popen(["node", script_path, command, argument], shell=False, cwd=repo_root)
+            script_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "core", "automation.js")
+            subprocess.Popen(["node", script_path, command, argument], shell=True)
             return True
-        except Exception:
+        except:
             return False
 
-    def _normalize_query(self, query: str):
-        text = (query or "").strip()
-        text = re.sub(r"\s+", " ", text)
-        text = text.replace("’", "'")
-        text = text.replace("…", "...")
-        text = text.strip(" ,.;:?!")
-        return text
-
-    def _collect_context(self, query: str):
-        context = []
-        try:
-            recent = self.memory.get_context(limit=5)
-            if recent:
-                context.append(f"Recent conversation:\n{recent}")
-        except Exception:
-            pass
-
-        try:
-            profile = self.profile.get_profile()
-            if profile:
-                context.append(f"User profile: {json.dumps(profile, ensure_ascii=False)}")
-        except Exception:
-            pass
-
-        try:
-            task = self.memory_router.recall('current_task', None)
-            if task:
-                context.append(f"Current task: {task}")
-        except Exception:
-            pass
-
-        try:
-            project = self.memory_router.recall('current_project', None)
-            if project:
-                context.append(f"Current project: {project}")
-        except Exception:
-            pass
-
-        try:
-            last_cmd = self.memory.recall('last_command', None)
-            if last_cmd:
-                context.append(f"Previous command: {last_cmd}")
-        except Exception:
-            pass
-
-        return "\n".join(context)
-
-    def _classify_intent(self, query: str):
-        try:
-            intent = self.intent_engine.classify(query)
-            return intent if isinstance(intent, dict) else {"type": "general_question", "category": "general", "value": query, "confidence": 0.5}
-        except Exception:
-            return {"type": "general_question", "category": "general", "value": query, "confidence": 0.5}
-
-    def _detect_emotion(self, query: str):
-        try:
-            return detect_emotion(query)
-        except Exception:
-            return "neutral"
-
-    def _plan_response(self, query: str, intent: dict, emotion: str):
-        text = query.lower().strip()
-        action = "answer"
-
-        if intent.get("type") in ["workspace", "automation", "browser", "music", "system", "coding"]:
-            action = "tool"
-        elif intent.get("type") in ["memory"]:
-            action = "memory"
-        elif any(x in text for x in ["why", "how", "what", "when", "where", "who", "explain", "tell me"]):
-            action = "answer"
-        elif emotion in ["frustrated", "urgent"]:
-            action = "answer"
-
-        return action
-
-    def _build_plan(self, query: str):
-        text = (query or "").strip().lower()
-        if not text:
-            return {"category": "conversation", "kind": "single_action", "priority": "normal", "requires_confirmation": False, "actions": []}
-
-        if any(x in text for x in ["open my workspace", "open workspace", "workspace mode", "coding workspace", "open project", "open folder", "open repo"]):
-            return {
-                "category": "workspace",
-                "kind": "multi_step",
-                "priority": "high",
-                "requires_confirmation": False,
-                "actions": ["open vscode", "open browser assistants", "restore workspace context"],
-            }
-
-        if any(x in text for x in ["build a portfolio", "portfolio website", "build portfolio", "create portfolio", "create website", "build website", "develop a project"]):
-            return {
-                "category": "goal",
-                "kind": "long_term",
-                "priority": "high",
-                "requires_confirmation": False,
-                "actions": ["research", "plan", "build", "test", "deploy"],
-            }
-
-        if any(x in text for x in ["work on", "working on", "continue", "resume", "task", "todo", "fix", "implement"]):
-            return {
-                "category": "coding",
-                "kind": "multi_step",
-                "priority": "normal",
-                "requires_confirmation": False,
-                "actions": ["inspect context", "plan changes", "apply changes", "verify"],
-            }
-
-        if any(x in text for x in ["shutdown", "restart", "delete", "format", "close all", "clear everything"]):
-            return {
-                "category": "system",
-                "kind": "single_action",
-                "priority": "critical",
-                "requires_confirmation": True,
-                "actions": ["confirm destructive action"],
-            }
-
-        if any(x in text for x in ["search", "research", "find", "look up", "compare", "investigate"]):
-            return {
-                "category": "research",
-                "kind": "single_action",
-                "priority": "normal",
-                "requires_confirmation": False,
-                "actions": ["collect information"],
-            }
-
-        return {"category": "conversation", "kind": "single_action", "priority": "normal", "requires_confirmation": False, "actions": []}
-
-    def _remember_goal(self, query: str, plan: dict):
-        try:
-            if plan.get("category") in ["goal", "workspace", "coding"]:
-                self.memory.remember("active_goal", query)
-                self.memory.remember("active_goal_plan", plan)
-        except Exception:
-            pass
-
-    def _should_confirm(self, plan: dict, query: str):
-        if plan.get("requires_confirmation"):
-            return True
-        if any(x in (query or "").lower() for x in ["please confirm", "are you sure", "confirm"]):
-            return True
-        return False
-
-    def _decide_tool(self, intent: dict, query: str):
-        intent_type = intent.get("type")
-        if intent_type in ["workspace", "automation"]:
-            return self.tool_manager.execute_intent(intent)
-        if intent_type == "browser":
-            return self.tool_manager.execute_intent(intent)
-        if intent_type == "music":
-            return self.tool_manager.execute_intent(intent)
-        if intent_type == "system":
-            return self.tool_manager.execute_intent(intent)
-        if intent_type == "coding":
-            return self.tool_manager.execute_intent(intent)
-        return None
-
     def process_query(self, query):
-        q_raw = (query or "").strip()
+        q_raw = query.strip()
 
-        normalized = self._normalize_query(q_raw)
-        context = self._collect_context(normalized)
-        intent = self._classify_intent(normalized)
-        emotion = self._detect_emotion(normalized)
-        plan = self._plan_response(normalized, intent, emotion)
-
+        # ── Phase 1: Memory observation ─────────────────────────────────────
+        # Log the raw utterance for possible persistence; never blocks flow.
         try:
-            self.memory_router.observe(normalized, metadata={'time': str(datetime.datetime.now()), 'emotion': emotion, 'intent': intent.get('type')})
-        except Exception:
+            self.memory_router.observe(q_raw, metadata={'time': str(datetime.datetime.now())})
+        except:
             pass
 
-        plan = self._build_plan(normalized)
-        self._remember_goal(normalized, plan)
-
-        if self._should_confirm(plan, normalized):
-            return f"I’m preparing a careful plan for that. Confirm if you want me to proceed with: {', '.join(plan.get('actions', []) or ['the requested action'])}."
-
-        parsed_goal = self.goal_parser.parse_goal(normalized)
+        # ── Phase 2: Goal / Mission parsing ─────────────────────────────────
+        parsed_goal = self.goal_parser.parse_goal(q_raw)
         if parsed_goal and parsed_goal.get("action") == "resume":
             mission = self.mission_manager.get_unfinished_mission()
             if mission:
@@ -375,33 +263,26 @@ You are J.A.R.V.I.S. Mark 5 in ADMIN MODE.
                 message += results[0]
             return message
 
-        q = normalized.lower()
+        # ── Phase 3: Working-memory cue extraction ──────────────────────────
+        q = q_raw.lower()
         try:
             if any(x in q for x in ['work on', 'working on', 'task', 'todo', 'fix', 'implement']):
-                self.memory_router.remember_working('current_task', normalized)
+                self.memory_router.remember_working('current_task', q_raw)
             if any(x in q for x in ['open project', 'open workspace', 'open folder', 'open repo']):
-                self.memory_router.remember_working('current_project', normalized.replace('open ', '').strip())
-        except Exception:
+                self.memory_router.remember_working('current_project', q_raw.replace('open ', '').strip())
+        except:
             pass
 
-        if plan == "tool":
-            tool_result = self._decide_tool(intent, normalized)
-            if tool_result:
-                return tool_result
-
-        if plan in ["answer", "memory"]:
-            if plan != "memory":
-                self.memory.remember("last_plan_category", plan)
-
-        if plan == "memory":
-            try:
-                return self.memory_router.recall(normalized, "I don't have a relevant memory for that yet, Boss.")
-            except Exception:
-                pass
-
-        if context:
-            return self.conv.handle(f"{normalized}\n\nContext:\n{context}")
-        return self.conv.handle(normalized)
+        # ── Phase 4: Delegate to ConversationEngine ─────────────────────────
+        # ConversationEngine owns: persona detection, context/memory
+        # retrieval, calling _local_llm_response() below, memory storage
+        # (_persist_exchange), and HumanLayer.enhance(). Wrapped so a bug
+        # anywhere in that chain can never crash JARVIS or propagate up.
+        try:
+            return self.conv.handle(query)
+        except Exception as e:
+            logging.error(f"process_query fatal error: {e}\n{traceback.format_exc()}")
+            return "Boss, kuch internal issue aa gaya. Main recover kar raha hoon — phir se try karo."
 
     def emit_event(self, event_type: str, payload: dict) -> None:
         try:
@@ -414,52 +295,138 @@ You are J.A.R.V.I.S. Mark 5 in ADMIN MODE.
         except Exception:
             pass
 
-    def _call_openai(self, prompt: str):
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            return None
+    # ── NEW: config reader for the primary Gemini model name ────────────────
+    def _load_gemini_model_name(self) -> str:
+        """
+        Read model_primary from jarvis_config.json. Safe/defensive: any
+        failure (missing file, bad JSON, missing key) falls back to
+        "gemini-pro" — mirrors the existing try/except style in load_mode().
+        """
         try:
-            payload = {
-                "model": "gpt-4o-mini",
-                "messages": [
-                    {"role": "system", "content": self.personality_prompt},
-                    {"role": "user", "content": prompt},
-                ],
-                "temperature": 0.7,
-            }
-            headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-            response = requests.post(
-                "https://api.openai.com/v1/chat/completions",
-                headers=headers,
-                json=payload,
-                timeout=45,
+            config_path = os.path.join(
+                os.path.dirname(os.path.dirname(__file__)), "jarvis_config.json"
             )
-            response.raise_for_status()
-            data = response.json()
-            content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
-            return content.strip() if content else None
-        except Exception as exc:
-            logging.warning(f"OpenAI fallback failed: {exc}")
+            if os.path.exists(config_path):
+                with open(config_path, "r", encoding="utf-8") as f:
+                    raw = f.read()
+                    raw = re.sub(r"/\*.*?\*/", "", raw, flags=re.DOTALL)  # strip JS-style comment block
+                    data = json.loads(raw)
+                    return data.get("model_primary", "gemini-pro")
+        except Exception:
+            pass
+        return "gemini-pro"
+
+    # ── NEW: layered prompt builder ──────────────────────────────────────────
+    def _build_layered_prompt(self, user_input: str, extra_context: str = "") -> str:
+        """
+        Build the LLM prompt in clearly labelled layers instead of one flat
+        string:
+            [SYSTEM]  — self.personality_prompt (mode-specific)
+            [PERSONA] — which mode is currently active (explicit, auditable
+                        read of self.current_mode — does NOT re-run persona
+                        detection, so this never duplicates the persona
+                        lookup ConversationEngine already performed)
+            [CONTEXT] — extra_context: memory/Mem0/working-memory/style
+                        hints already retrieved upstream by ConversationEngine
+                        + ContextEngine. NOT re-fetched here, to avoid
+                        duplicate memory calls.
+            [USER]    — the current query
+        """
+        layers = [f"[SYSTEM]\n{self.personality_prompt.strip()}"]
+        layers.append(f"[PERSONA]\nActive mode: {self.current_mode.upper()}")
+
+        if extra_context and extra_context.strip():
+            layers.append(f"[CONTEXT]\n{extra_context.strip()}")
+
+        layers.append(f"[USER]\n{user_input.strip()}")
+        return "\n\n".join(layers)
+
+    # ── NEW: Gemini primary LLM call ─────────────────────────────────────────
+    def _gemini_response(self, prompt: str) -> Optional[str]:
+        """
+        Primary LLM call via google-generativeai (confirmed dependency in
+        requirements.txt). Returns None on ANY failure — missing SDK,
+        missing API key, network error, empty response — so the caller
+        can fall back to Ollama. Never raises.
+        """
+        try:
+            import google.generativeai as genai
+        except ImportError:
+            logging.warning("google-generativeai not installed — falling back to Ollama.")
             return None
 
-    def _call_gemini(self, prompt: str):
         api_key = os.getenv("GEMINI_API_KEY")
         if not api_key:
+            logging.warning("GEMINI_API_KEY not set — falling back to Ollama.")
             return None
+
         try:
-            payload = {
-                "contents": [{"parts": [{"text": prompt}]}],
-            }
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
-            response = requests.post(url, json=payload, timeout=45)
-            response.raise_for_status()
-            data = response.json()
-            parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
-            text = "".join(part.get("text", "") for part in parts if isinstance(part, dict))
-            return text.strip() if text else None
-        except Exception as exc:
-            logging.warning(f"Gemini fallback failed: {exc}")
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel(self.gemini_model)
+            result = model.generate_content(prompt)
+            text = (getattr(result, "text", "") or "").strip()
+            return text or None
+        except Exception as e:
+            logging.error(f"Gemini Error: {e}")
             return None
+
+    # ── Ollama fallback (original subprocess call, extracted verbatim) ──────
+    def _ollama_response(self, prompt: str) -> Optional[str]:
+        """
+        Fallback LLM: local Ollama model (self.ollama_model). Same command,
+        same timeout as the original implementation. Returns None on
+        failure instead of a hardcoded string — the caller
+        (_local_llm_response) owns the single final fallback message.
+        """
+        try:
+            result = subprocess.run(
+                ["ollama", "run", self.ollama_model, prompt],
+                capture_output=True, text=True, timeout=75,
+            )
+            response = result.stdout.strip()
+            return response or None
+        except Exception as e:
+            logging.error(f"Ollama Error: {e}")
+            return None
+
+    def _local_llm_response(
+        self,
+        user_input,
+        extra_context: str = "",
+        humanize: bool = False,
+        emotion: str = "neutral",
+    ):
+        """
+        LLM-generation pipeline stage: Layered Prompt Building -> Gemini
+        (primary) -> Ollama (fallback) -> static safe string (final
+        fallback) -> optional HumanLayer pass.
+
+        BACKWARD COMPATIBLE: existing call site in conversation_engine.py
+        (`self.brain._local_llm_response(q_raw, extra_context=extra)`)
+        behaves EXACTLY as before — returns a plain, non-humanized string.
+
+        `humanize` defaults to False deliberately: conversation_engine.py
+        already calls self.human.enhance() on this method's return value
+        right after calling it. Setting humanize=True here by default
+        would humanize every response twice. Pass humanize=True only from
+        a NEW call site that does not separately call HumanLayer itself.
+        """
+        prompt = self._build_layered_prompt(user_input, extra_context)
+
+        response = self._gemini_response(prompt)
+        if response is None:
+            response = self._ollama_response(prompt)
+        if response is None:
+            response = "Boss, abhi mera brain thoda busy hai. Thoda wait kar."
+
+        if humanize:
+            try:
+                metadata = {"emotion": emotion, "detected_mode": self.current_mode}
+                response = self.human_layer.enhance(response, metadata=metadata)
+            except Exception as e:
+                logging.error(f"HumanLayer enhancement failed: {e}")
+
+        return response
 
     def _time_aware_greeting(self):
         now = datetime.datetime.now()

@@ -7,7 +7,7 @@ FILE    : tts.py
 PATH    : core\tts.py
 
 PURPOSE :
-Generates speech using ElevenLabs and manages audio synthesis.
+Generates speech using  and manages audio synthesis.
 
 LAST UPDATED :
 2026-06-28

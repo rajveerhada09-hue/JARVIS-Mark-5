@@ -4,7 +4,7 @@ PROJECT : JARVIS MARK 5
 
 FILE    : add_project_headers.py
 
-PATH    : tools\add_project_headers.py
+PATH    : utils\add_project_headers.py
 
 PURPOSE :
 Module description pending.
@@ -68,7 +68,7 @@ PURPOSES = {
     "tts.py":
         
 
-    "speech.py":
+    "speech.py"
         "Captures microphone input and converts speech into text.",
 
     "intent_engine.py":
