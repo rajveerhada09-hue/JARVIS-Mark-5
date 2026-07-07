@@ -38,6 +38,7 @@ from queue import Queue, Empty
 import pygame
 import pyttsx3
 from dotenv import load_dotenv
+from voice.edge_fallback import speak_edge
 from voice.cache_manager import VoiceCacheManager
 from elevenlabs import ElevenLabs
 from pathlib import Path
@@ -56,8 +57,16 @@ except Exception as e:
 
 VOICE_ID = os.getenv("VOICE_ID", "nPczCjzI2devNBz1zQrb")
 
-OFFLINE_MODE = client is None
+ELEVEN_AVAILABLE = client is not None
 engine = pyttsx3.init("sapi5")
+VOICE_STYLES = {
+    "neutral":   {"stability": 0.75, "style": 0.3},
+    "friendly":  {"stability": 0.60, "style": 0.6},
+    "serious":   {"stability": 0.90, "style": 0.2},
+    "confident": {"stability": 0.80, "style": 0.4},
+    "firm":      {"stability": 0.95, "style": 0.1},
+    "light":     {"stability": 0.50, "style": 0.8},
+}
 voices = engine.getProperty("voices")
 engine.setProperty("voice", voices[0].id)
 engine.setProperty("rate", 135)
@@ -176,6 +185,7 @@ def stop_speaking() -> None:
     try:
         pygame.mixer.music.stop()
         pygame.mixer.music.unload()
+        speaking_event.clear()
     except Exception:
         pass
     _clear_queue()
@@ -246,8 +256,8 @@ def _worker() -> None:
 
 # ── Core engine (original + resume tracking) ──────────────────────────────────
 def _run_speak(text: str, intent: str = "chat", emotion: str = "neutral") -> None:
-    global OFFLINE_MODE
 
+    global ELEVEN_AVAILABLE
     speaking_event.set()
     stop_event.clear()
     mic_interrupt.clear()
@@ -258,14 +268,10 @@ def _run_speak(text: str, intent: str = "chat", emotion: str = "neutral") -> Non
         safe_text = str(text)
         emotion, _ = brain.analyze(safe_text, intent)
 
-        voice_style = {
-            "neutral":   {"stability": 0.75, "style": 0.3},
-            "friendly":  {"stability": 0.6,  "style": 0.6},
-            "serious":   {"stability": 0.9,  "style": 0.2},
-            "confident": {"stability": 0.8,  "style": 0.4},
-            "firm":      {"stability": 0.95, "style": 0.1},
-            "light":     {"stability": 0.5,  "style": 0.8},
-        }.get(emotion, {"stability": 0.75, "style": 0.3})
+        voice_style = VOICE_STYLES.get(
+    emotion,
+    {"stability": 0.75, "style": 0.3},
+)
 
         print(f"{Fore.CYAN}🤖 JARVIS: {safe_text}")
 
@@ -274,7 +280,10 @@ def _run_speak(text: str, intent: str = "chat", emotion: str = "neutral") -> Non
                 _store_resume(sentences, i)
                 return
 
-            # === CACHE CHECK ===
+            # ==========================
+            # CACHE
+            # ==========================
+
             hash_key = cache.generate_hash(
                 sentence,
                 VOICE_ID,
@@ -284,13 +293,33 @@ def _run_speak(text: str, intent: str = "chat", emotion: str = "neutral") -> Non
 
             cached = cache.get_cached_file(hash_key)
 
+            # ---------- Cached ----------
             if cached and cached.exists():
-                print(f"{Fore.BLUE}[CACHE] Playing cached: {sentence[:60]}...")
+
                 pygame.mixer.music.load(str(cached))
-            else:
-                print(f"{Fore.YELLOW}[TTS] Generating new audio...")
+
+                pygame.mixer.music.play()
+
+                while pygame.mixer.music.get_busy():
+
+                    if stop_event.is_set() or mic_interrupt.is_set():
+                        pygame.mixer.music.stop()
+                        pygame.mixer.music.unload()
+                        _store_resume(sentences, i)
+                        return
+
+                    time.sleep(0.05)
+
+                pygame.mixer.music.unload()
+                continue
+
+
+            # ---------- Eleven ----------
+            if ELEVEN_AVAILABLE:
+
                 try:
-                    audio_gen = client.text_to_speech.convert(
+
+                    audio_stream = client.text_to_speech.convert(
                         text=sentence,
                         voice_id=VOICE_ID,
                         model_id="eleven_turbo_v2_5",
@@ -303,9 +332,11 @@ def _run_speak(text: str, intent: str = "chat", emotion: str = "neutral") -> Non
                         },
                     )
 
-                    file_path = CACHE_DIR / f"{time.time_ns()}.mp3"
-                    with open(file_path, "wb") as f:
-                        for chunk in audio_gen:
+                    temp = CACHE_DIR / f"{time.time_ns()}.mp3"
+
+                    with open(temp, "wb") as f:
+
+                        for chunk in audio_stream:
 
                             if stop_event.is_set() or mic_interrupt.is_set():
                                 _store_resume(sentences, i)
@@ -314,34 +345,44 @@ def _run_speak(text: str, intent: str = "chat", emotion: str = "neutral") -> Non
                             if chunk:
                                 f.write(chunk)
 
-                    file_path = cache.save_cached_file(
-                                hash_key,
-                                file_path,
-                                sentence,
-                                VOICE_ID,
-                                "eleven_turbo_v2_5",
-                                emotion,
-                            )
-                    pygame.mixer.music.load(str(file_path))
+                    temp = cache.save_cached_file(
+                        hash_key,
+                        temp,
+                        sentence,
+                        VOICE_ID,
+                        "eleven_turbo_v2_5",
+                        emotion,
+                    )
 
-                except Exception as e:
-                    print(f"{Fore.RED}[ElevenLabs Error] {e}")
-                    engine.say(sentence)
-                    engine.runAndWait()
+                    pygame.mixer.music.load(str(temp))
+
+                    pygame.mixer.music.play()
+
+                    while pygame.mixer.music.get_busy():
+
+                        if stop_event.is_set() or mic_interrupt.is_set():
+                            pygame.mixer.music.stop()
+                            pygame.mixer.music.unload()
+                            _store_resume(sentences, i)
+                            return
+
+                        time.sleep(0.05)
+
+                    pygame.mixer.music.unload()
+
                     continue
 
-            # === PLAYBACK ===
-            pygame.mixer.music.play()
+                except Exception as e:
 
-            while pygame.mixer.music.get_busy():
-                if stop_event.is_set() or mic_interrupt.is_set():
-                    pygame.mixer.music.stop()
-                    pygame.mixer.music.unload()
-                    _store_resume(sentences, i)
-                    return
-                time.sleep(0.05)
+                    print(f"{Fore.RED}[ElevenLabs Disabled] {e}")
 
-            pygame.mixer.music.unload()
+                    ELEVEN_AVAILABLE = False
+
+
+            # ---------- EDGE ----------
+            speak_edge(sentence)
+            continue
+
 
         # All sentences played
         _clear_resume()

@@ -24,7 +24,7 @@ from colorama import Fore
 engine = pyttsx3.init('sapi5') # Windows ke liye fastest driver
 voices = engine.getProperty('voices')
 engine.setProperty('voice', voices[0].id) # 0 for David (Jarvis style), 1 for Zira
-engine.setProperty('rate', 190) # Normal speed se thoda tez (Witty vibe)
+engine.setProperty('rate', 175) # Normal speed se thoda tez (Witty vibe)
 
 # Interrupt Flag
 stop_flag = False

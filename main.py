@@ -86,15 +86,15 @@ def launch_hud():
         print(Fore.RED + f"[HUD ERROR] {exc}")
 
 
-def start_startup_audio():
-    threading.Thread(target=play_startup_audio, daemon=True).start()
+#def start_startup_audio():
+    #threading.Thread(target=play_startup_audio, daemon=True).start()
 
 
 def boot_sequence(config):
     print("Booting JARVIS...")
 
     kernel.initialize()
-    start_startup_audio()
+    #start_startup_audio()
 
     try:
         if hasattr(kernel.brain, "get_greeting"):

@@ -2,7 +2,6 @@ import traceback
 from core.intent_engine import IntentEngine
 from core.tool_manager import ToolManager
 
-
 class Kernel:
     """
     Central orchestrator (NOT logic owner)
@@ -17,7 +16,7 @@ class Kernel:
         self.brain = None
         self.voice = None
         self.vision = None
-
+        self.services = {}
         self.event_bus = {}
         self._running = False
         self._paused = False
@@ -32,7 +31,14 @@ class Kernel:
     def _load_context(self):
         try:
             from brain.context_engine import ContextEngine
-            self.context_engine = ContextEngine()
+            context = ContextEngine()
+
+            self.register_service(
+                    "context",
+                    context
+                )
+
+            self.context_engine = self.get_service("context")
         except Exception as e:
             print(f"[KERNEL] Context engine unavailable: {e}")
             self.context_engine = None
@@ -40,7 +46,11 @@ class Kernel:
     def _load_memory(self):
         try:
             from memory.memory_engine import MemoryEngine
-            self.memory_engine = MemoryEngine()
+            memory = MemoryEngine()
+
+            self.register_service("memory", memory)
+            self.memory_engine = self.get_service("memory")
+            
         except Exception as e:
             print(f"[KERNEL] Memory engine unavailable: {e}")
             self.memory_engine = None
@@ -48,7 +58,15 @@ class Kernel:
     def _load_workspace(self):
         try:
             from automation.workspace_manager import WorkspaceManager
-            self.workspace_manager = WorkspaceManager()
+            workspace = WorkspaceManager()
+
+            self.register_service(
+                "workspace",
+                workspace
+            )
+
+            self.workspace_manager = self.get_service("workspace")
+
         except Exception as e:
             print(f"[KERNEL] Workspace manager unavailable: {e}")
             self.workspace_manager = None
@@ -56,7 +74,13 @@ class Kernel:
     def _load_brain(self):
         try:
             from brain.brain import JarvisBrain
-            self.brain = JarvisBrain()
+            brain = JarvisBrain()
+
+            self.register_service(
+                "brain",
+                brain
+            )
+
         except Exception as e:
             print(f"[KERNEL] Brain unavailable: {e}")
             self.brain = None
@@ -64,7 +88,13 @@ class Kernel:
     def _load_voice(self):
         try:
             from voice import voice as voice_module
-            self.voice = voice_module
+
+            self.register_service(
+                "voice",
+                voice_module
+            )
+
+            self.voice = self.get_service("voice")
         except Exception as e:
             print(f"[KERNEL] Voice module unavailable: {e}")
             self.voice = None
@@ -72,7 +102,13 @@ class Kernel:
     def _load_vision(self):
         try:
             from vision import vision as vision_module
-            self.vision = vision_module
+            
+            self.register_service(
+                "vision",
+                vision_module
+            )
+
+            self.vision = self.get_service("vision")
         except Exception as e:
             print(f"[KERNEL] Vision module unavailable: {e}")
             self.vision = None
@@ -80,10 +116,17 @@ class Kernel:
     # ---------------- INIT ----------------
     def initialize(self):
         print("[KERNEL] Booting JARVIS Core Systems...")
-        if hasattr(self.brain, "initialize"):
-            self.brain.initialize()
+        brain = self.get_service("brain")
+
+        if brain and hasattr(brain, "initialize"):
+            brain.initialize()
+           
 
         self._running = True
+        self.subscribe("intent", self.handle_intent)
+        self.subscribe("brain", self.handle_brain)
+        self.subscribe("tool", self.handle_tool)
+        self.subscribe("workspace", self.handle_workspace)
         self._paused = False
         print("[KERNEL] All systems online.")
         return True
@@ -93,22 +136,20 @@ class Kernel:
 
     # ---------------- EVENT SYSTEM ----------------
     def _register_default_events(self):
-        self.event_bus = {
-            "intent": self.handle_intent,
-            "brain": self.handle_brain,
-            "tool": self.handle_tool,
-            "workspace": self.handle_workspace,
-        }
+        self.event_bus = {}
 
-    def emit(self, event_type, payload):
-        try:
-            handler = self.event_bus.get(event_type)
-            if handler:
-                return handler(payload)
-            return f"[KERNEL] No handler for {event_type}"
-        except Exception as e:
-            traceback.print_exc()
-            return f"[KERNEL ERROR] {e}"
+    def emit(self, event_name, payload=None):
+        listeners = self.event_bus.get(event_name, [])
+
+        result = None
+
+        for callback in listeners:
+            try:
+                result = callback(payload)
+            except Exception:
+                traceback.print_exc()
+
+        return result
 
     # ---------------- QUERY PIPELINE ----------------
     def process_query(self, query: str):
@@ -125,54 +166,105 @@ class Kernel:
         if tool_result:
             return tool_result
 
-        if self.brain is not None:
-            return self.emit("brain", query)
+        brain = self.get_service("brain")
+
+        if brain:
+            return brain.process_query(query)
+           
 
         return "Brain is currently unavailable, Boss."
 
     def pause(self):
         self._paused = True
-        if self.voice is not None and hasattr(self.voice, "stop_speaking"):
-            self.voice.stop_speaking()
+
+        voice = self.get_service("voice")
+
+        if voice and hasattr(voice, "stop_speaking"):
+            voice.stop_speaking()
+
         return "System paused."
 
     def resume(self):
         self._paused = False
-        if self.voice is not None and hasattr(self.voice, "resume_speech"):
-            self.voice.resume_speech()
+
+        voice = self.get_service("voice")
+
+        if voice and hasattr(voice, "resume_speech"):
+            voice.resume_speech()
+
         return "System resumed."
 
     def shutdown(self):
         self._running = False
         self._paused = False
-        if self.voice is not None and hasattr(self.voice, "stop_speaking"):
-            self.voice.stop_speaking()
+        voice = self.get_service("voice")
+
+        if voice and hasattr(voice, "stop_speaking"):
+            voice.stop_speaking()
         return "System shutting down."
 
     def system_status(self):
         return {
-            "running": self._running,
-            "paused": self._paused,
-            "brain_ready": self.brain is not None,
-            "voice_ready": self.voice is not None,
-            "vision_ready": self.vision is not None,
-            "memory_ready": self.memory_engine is not None,
-            "context_ready": self.context_engine is not None,
-        }
+        "running": self._running,
+        "paused": self._paused,
+
+        "memory_ready": self.get_service("memory") is not None,
+        "context_ready": self.get_service("context") is not None,
+        "workspace_ready": self.get_service("workspace") is not None,
+        "brain_ready": self.get_service("brain") is not None,
+        "voice_ready": self.get_service("voice") is not None,
+        "vision_ready": self.get_service("vision") is not None,
+
+        "services": len(self.services),
+        "registered": list(self.services.keys()),
+    }
 
     # ---------------- HANDLERS ----------------
     def handle_tool(self, intent):
         return self.tool_manager.execute_intent(intent)
 
     def handle_workspace(self, query):
-        if self.workspace_manager is None:
+        workspace = self.get_service("workspace")
+
+        if workspace is None:
             return "Workspace manager is currently unavailable, Boss."
-        return self.workspace_manager.launch_workspace(query)
+
+        return workspace.launch_workspace(query)
 
     def handle_brain(self, query):
-        if self.brain is None:
+        brain = self.get_service("brain")
+
+        if brain is None:
             return "Brain is currently unavailable, Boss."
-        return self.brain.process_query(query)
+
+        return brain.process_query(query)
 
     def handle_intent(self, query):
         return self.intent_engine.classify(query)
+    
+    def register_service(self, name: str, service):
+        """
+        Register a service inside the kernel.
+        """
+
+        self.services[name] = service
+        setattr(self, name, service)
+
+
+    def get_service(self, name: str):
+        """
+        Retrieve a registered service.
+        """
+
+        return self.services.get(name)
+    
+    def subscribe(self, event_name, callback):
+     if event_name not in self.event_bus:
+        self.event_bus[event_name] = []
+
+        self.event_bus[event_name].append(callback)
+
+    def unsubscribe(self, event_name, callback):
+        if event_name in self.event_bus:
+            if callback in self.event_bus[event_name]:
+                self.event_bus[event_name].remove(callback)
