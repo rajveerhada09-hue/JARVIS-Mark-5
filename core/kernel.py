@@ -80,6 +80,7 @@ class Kernel:
                 "brain",
                 brain
             )
+            self.brain = brain
 
         except Exception as e:
             print(f"[KERNEL] Brain unavailable: {e}")

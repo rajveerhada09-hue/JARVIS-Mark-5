@@ -24,6 +24,7 @@ from colorama import Fore, init
 from dotenv import load_dotenv
 
 from core.kernel import Kernel
+from core.greeting_manager import time_aware_greeting
 from core.startup_audio import play_startup_audio
 from voice.speech import listen
 from voice.voice import is_speaking, speak
@@ -97,10 +98,12 @@ def boot_sequence(config):
     #start_startup_audio()
 
     try:
-        if hasattr(kernel.brain, "get_greeting"):
-            speak(kernel.brain.get_greeting())
-        else:
-            speak("System Online")
+        greeting = time_aware_greeting(
+            memory=kernel.get_service("memory")
+        )
+
+        speak(greeting)
+
     except Exception as exc:
         print(Fore.YELLOW + f"[BOOT] Greeting skipped: {exc}")
 

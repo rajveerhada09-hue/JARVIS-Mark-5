@@ -16,35 +16,26 @@ LAST UPDATED :
 """
 
 import webbrowser
-from abc import ABC, abstractmethod
-from typing import Any, List, Optional
-
+from typing import List
+from agents.base_agent import BaseAgent
 from automation.pc_control import open_app, pc_control_master
 from agents.task_queue import Task
 
 
-class BaseAgent(ABC):
-    name: str
-    categories: List[str]
-
-    def __init__(self):
-        self.name = self.__class__.__name__
-        self.categories = []
-
-    def can_handle(self, task: Task) -> bool:
-        return task.category in self.categories
-
-    @abstractmethod
-    def execute(self, task: Task, brain: Any = None) -> str:
-        pass
-
-
 class AutomationAgent(BaseAgent):
-    def __init__(self):
-        super().__init__()
-        self.categories = ["automation", "open", "setup", "environment"]
 
-    def execute(self, task: Task, brain: Any = None) -> str:
+    def __init__(self):
+        super().__init__(
+            name="AutomationAgent",
+            description="Handles automation tasks",
+            priority=1,
+            capabilities=["automation", "open", "setup", "environment"]
+        )
+
+    def _can_handle(self, task):
+        return task.category in self.capabilities
+
+    def _execute(self, task):
         payload = task.payload or task.name
         command = str(payload).strip()
 
@@ -70,9 +61,6 @@ class AutomationAgent(BaseAgent):
             if "grok" in command.lower():
                 webbrowser.open("https://grok.com")
                 return "Opening Grok in browser."
-            if "claude" in command.lower():
-                webbrowser.open("https://claude.ai")
-                return "Opening Claude in browser."
 
         if command:
             pc_control_master(f"open {command}")
@@ -82,85 +70,249 @@ class AutomationAgent(BaseAgent):
 
 
 class ResearchAgent(BaseAgent):
-    def __init__(self):
-        super().__init__()
-        self.categories = ["research"]
 
-    def execute(self, task: Task, brain: Any = None) -> str:
-        prompt = f"Research the following objective and summarize the results:\n{task.payload or task.name}"
-        if brain is not None and hasattr(brain, "_local_llm_response"):
-            response = brain._local_llm_response(prompt)
-            return response or "Research completed."
-        return f"Research completed for: {task.name}."
+    def __init__(self):
+        super().__init__(
+            name="ResearchAgent",
+            description="Research & Internet reasoning",
+            priority=2,
+            capabilities=["research"]
+        )
+
+    def _can_handle(self, task):
+        return task.category in self.capabilities
+
+    def _execute(self, task):
+        prompt = f"Research:\n{task.payload or task.name}"
+
+        if hasattr(task, "brain") and task.brain:
+            brain = task.brain
+
+            if hasattr(brain, "_local_llm_response"):
+                return brain._local_llm_response(prompt)
+
+        return f"Research completed for {task.name}"
 
 
 class PlanningAgent(BaseAgent):
-    def __init__(self):
-        super().__init__()
-        self.categories = ["planning", "strategy"]
 
-    def execute(self, task: Task, brain: Any = None) -> str:
-        prompt = f"Create a structured plan for the following objective:\n{task.payload or task.name}"
-        if brain is not None and hasattr(brain, "_local_llm_response"):
-            response = brain._local_llm_response(prompt)
-            return response or "Planning step completed."
-        return f"Planning step completed for: {task.name}."
+    def __init__(self):
+        super().__init__(
+            name="PlanningAgent",
+            description="Planning Agent",
+            priority=3,
+            capabilities=["planning", "strategy"]
+        )
+
+    def _can_handle(self, task):
+        return task.category in self.capabilities
+
+    def _execute(self, task):
+        prompt = f"Plan:\n{task.payload or task.name}"
+
+        if hasattr(task, "brain") and task.brain:
+            brain = task.brain
+
+            if hasattr(brain, "_local_llm_response"):
+                return brain._local_llm_response(prompt)
+
+        return f"Planning completed for {task.name}"
 
 
 class CodingAgent(BaseAgent):
-    def __init__(self):
-        super().__init__()
-        self.categories = ["coding", "development", "write_code", "generate_structure", "testing", "deployment"]
 
-    def execute(self, task: Task, brain: Any = None) -> str:
-        prompt = f"Execute a coding-oriented task:\n{task.payload or task.name}"
-        if brain is not None and hasattr(brain, "_local_llm_response"):
-            response = brain._local_llm_response(prompt)
-            return response or "Coding task completed."
-        return f"Coding task completed: {task.name}."
+    def __init__(self):
+        super().__init__(
+            name="CodingAgent",
+            description="Coding Agent",
+            priority=4,
+            capabilities=[
+                "coding",
+                "development",
+                "write_code",
+                "generate_structure",
+                "testing",
+                "deployment",
+            ]
+        )
+
+    def _can_handle(self, task):
+        return task.category in self.capabilities
+
+    def _execute(self, task):
+        prompt = f"Coding:\n{task.payload or task.name}"
+
+        if hasattr(task, "brain") and task.brain:
+            brain = task.brain
+
+            if hasattr(brain, "_local_llm_response"):
+                return brain._local_llm_response(prompt)
+
+        return f"Coding completed for {task.name}"
 
 
 class MemoryAgent(BaseAgent):
-    def __init__(self):
-        super().__init__()
-        self.categories = ["memory"]
 
-    def execute(self, task: Task, brain: Any = None) -> str:
-        if brain is not None and hasattr(brain, "memory"):
-            try:
-                brain.memory.remember(task.name, task.payload)
-                return f"Remembered: {task.name}."
-            except Exception:
-                pass
-        return f"Memory task completed: {task.name}."
+    def __init__(self):
+        super().__init__(
+            name="MemoryAgent",
+            description="Memory Agent",
+            priority=2,
+            capabilities=["memory"]
+        )
+
+    def _can_handle(self, task):
+        return task.category in self.capabilities
+
+    def _execute(self, task):
+
+        if hasattr(task, "brain") and task.brain:
+            brain = task.brain
+
+            if hasattr(brain, "memory"):
+                try:
+                    brain.memory.remember(task.name, task.payload)
+                    return f"Remembered {task.name}"
+                except Exception:
+                    pass
+
+        return f"Memory stored for {task.name}"
 
 
 class VisionAgent(BaseAgent):
-    def __init__(self):
-        super().__init__()
-        self.categories = ["vision"]
 
-    def execute(self, task: Task, brain: Any = None) -> str:
-        return f"Vision task completed: {task.name}."
+    def __init__(self):
+        super().__init__(
+            name="VisionAgent",
+            description="Vision Agent",
+            priority=2,
+            capabilities=["vision"]
+        )
+
+    def _can_handle(self, task):
+        return task.category in self.capabilities
+
+    def _execute(self, task):
+        return f"Vision task completed: {task.name}"
 
 
 class AgentManager:
+    """
+    Central registry for all JARVIS Agents.
+    """
+
     def __init__(self):
-        self.agents: List[BaseAgent] = [
-            AutomationAgent(),
-            ResearchAgent(),
-            PlanningAgent(),
-            CodingAgent(),
-            MemoryAgent(),
-            VisionAgent(),
+
+        self.agents: List[BaseAgent] = []
+
+        # Register built-in agents
+        self.register_agent(AutomationAgent())
+        self.register_agent(ResearchAgent())
+        self.register_agent(PlanningAgent())
+        self.register_agent(CodingAgent())
+        self.register_agent(MemoryAgent())
+        self.register_agent(VisionAgent())
+
+    # --------------------------------------------------
+
+    def register_agent(self, agent: BaseAgent):
+        """
+        Register a new agent.
+        """
+
+        if agent not in self.agents:
+            self.agents.append(agent)
+
+            print(f"[AGENT] Registered -> {agent.name}")
+
+    # --------------------------------------------------
+
+    def unregister_agent(self, agent_name: str):
+
+        self.agents = [
+            agent
+            for agent in self.agents
+            if agent.name != agent_name
         ]
 
-    def find_agent(self, task: Task) -> BaseAgent:
+        print(f"[AGENT] Unregistered -> {agent_name}")
+
+    # --------------------------------------------------
+
+    def get_agent(self, agent_name: str):
+
         for agent in self.agents:
+
+            if agent.name == agent_name:
+                return agent
+
+        return None
+
+    # --------------------------------------------------
+
+    def find_agent(self, task: Task) -> BaseAgent:
+
+        for agent in self.agents:
+
             if agent.can_handle(task):
                 return agent
-        return AutomationAgent()
 
-    def execute_task(self, task: Task, brain: Any = None) -> str:
+        return self.get_agent("AutomationAgent")
+
+    # --------------------------------------------------
+
+    def execute_task(self, task: Task, brain=None):
+
         agent = self.find_agent(task)
-        return agent.execute(task, brain=brain)
+
+        if agent is None:
+            return "No suitable agent found."
+
+        if brain is not None:
+            task.brain = brain
+
+        return agent.execute(task)
+
+    # --------------------------------------------------
+
+    def broadcast_event(self, event_name: str, payload=None):
+
+        for agent in self.agents:
+
+            try:
+
+                if hasattr(agent, "on_event"):
+                    agent.on_event(event_name, payload)
+
+            except Exception as e:
+
+                print(f"[AGENT EVENT ERROR] {agent.name}: {e}")
+
+    # --------------------------------------------------
+
+    def health_check(self):
+
+        report = {}
+
+        for agent in self.agents:
+
+            try:
+
+                report[agent.name] = agent.status()
+
+            except Exception:
+
+                report[agent.name] = {
+                    "status": "UNKNOWN"
+                }
+
+        return report
+
+    # --------------------------------------------------
+
+    def list_agents(self):
+
+        return [
+            agent.name
+            for agent in self.agents
+        ]

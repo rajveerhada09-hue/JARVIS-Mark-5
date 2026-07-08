@@ -1,6 +1,7 @@
 import os
 import subprocess
 import threading
+import time
 import webbrowser
 
 
@@ -52,9 +53,13 @@ def _run_startup_audio():
             webbrowser.open(_STARTUP_TRACK_URL)
 
         print("[AUDIO] Startup track launched (Spotify)")
+        start_time = time.time()
         _set_spotify_volume(True)
 
-        while not _STARTUP_AUDIO_STOP_EVENT.is_set():
+        while (
+                not _STARTUP_AUDIO_STOP_EVENT.is_set()
+                and time.time() - start_time < 30
+            ):
             if os.name == "nt":
                 subprocess.run(["tasklist", "/FI", "IMAGENAME eq Spotify.exe"], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             else:
@@ -63,7 +68,7 @@ def _run_startup_audio():
             _STARTUP_AUDIO_STOP_EVENT.wait(5)
 
         if not _STARTUP_AUDIO_STOP_EVENT.is_set():
-            stop_startup_audio()
+            print("[AUDIO] Startup music finished (30 sec)")
         else:
             print("[AUDIO] Startup track stopped manually")
     except Exception as exc:
