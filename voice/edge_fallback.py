@@ -5,7 +5,7 @@ import os
 import time
 import pygame
 
-VOICE = "en-US-AndrewNeural"
+VOICE = "en-IN-PrabhatNeural"
 
 
 async def _generate(text: str, output: str):

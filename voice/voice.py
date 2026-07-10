@@ -147,7 +147,26 @@ class VoiceBrain:
 
 
 brain = VoiceBrain()
+def preprocess_hinglish(text: str) -> str:
+    replacements = {
+        "GPT": "G P T",
+        "CPU": "C P U",
+        "GPU": "G P U",
+        "API": "A P I",
+        "HTTP": "H T T P",
+        "HTTPS": "H T T P S",
+        "HTML": "H T M L",
+        "CSS": "C S S",
+        "JSON": "Jay Son",
+        "SQL": "S Q L",
+        "GUI": "G U I",
+        "RTX": "R T X",
+    }
 
+    for k, v in replacements.items():
+        text = re.sub(rf"\b{k}\b", v, text, flags=re.IGNORECASE)
+
+    return text
 
 # ── Public API ────────────────────────────────────────────────────────────────
 
@@ -266,6 +285,10 @@ def _run_speak(text: str, intent: str = "chat", emotion: str = "neutral") -> Non
 
     try:
         safe_text = str(text)
+
+        # Sirf technical responses ke liye abbreviations expand karo
+        if intent in ["system", "pc_control", "coding", "admin"]:
+            safe_text = preprocess_hinglish(safe_text)
         emotion, _ = brain.analyze(safe_text, intent)
 
         voice_style = VOICE_STYLES.get(
@@ -274,27 +297,32 @@ def _run_speak(text: str, intent: str = "chat", emotion: str = "neutral") -> Non
 )
 
         print(f"{Fore.CYAN}🤖 JARVIS: {safe_text}")
+        
+        # Resume ke liye sentence list alag rahegi
+        resume_sentences = sentences
 
-        for i, sentence in enumerate(sentences):
-            if stop_event.is_set() or mic_interrupt.is_set():
-                _store_resume(sentences, i)
+        # ElevenLabs ko ek hi baar pura text bhejna hai
+        speech_text = " ".join(sentences)
+        i = 0
+        if stop_event.is_set() or mic_interrupt.is_set():
+                _store_resume(resume_sentences, i)
                 return
 
             # ==========================
             # CACHE
             # ==========================
 
-            hash_key = cache.generate_hash(
-                sentence,
+        hash_key = cache.generate_hash(
+                speech_text,
                 VOICE_ID,
                 "eleven_turbo_v2_5",
                 emotion
             )
 
-            cached = cache.get_cached_file(hash_key)
+        cached = cache.get_cached_file(hash_key)
 
             # ---------- Cached ----------
-            if cached and cached.exists():
+        if cached and cached.exists():
 
                 pygame.mixer.music.load(str(cached))
 
@@ -305,22 +333,22 @@ def _run_speak(text: str, intent: str = "chat", emotion: str = "neutral") -> Non
                     if stop_event.is_set() or mic_interrupt.is_set():
                         pygame.mixer.music.stop()
                         pygame.mixer.music.unload()
-                        _store_resume(sentences, i)
+                        _store_resume(resume_sentences, i)
                         return
 
                     time.sleep(0.05)
 
                 pygame.mixer.music.unload()
-                continue
+                return
 
 
             # ---------- Eleven ----------
-            if ELEVEN_AVAILABLE:
+        if ELEVEN_AVAILABLE:
 
                 try:
 
                     audio_stream = client.text_to_speech.convert(
-                        text=sentence,
+                        text=speech_text,
                         voice_id=VOICE_ID,
                         model_id="eleven_turbo_v2_5",
                         output_format="mp3_44100_128",
@@ -339,7 +367,7 @@ def _run_speak(text: str, intent: str = "chat", emotion: str = "neutral") -> Non
                         for chunk in audio_stream:
 
                             if stop_event.is_set() or mic_interrupt.is_set():
-                                _store_resume(sentences, i)
+                                _store_resume(resume_sentences, i)
                                 return
 
                             if chunk:
@@ -348,7 +376,7 @@ def _run_speak(text: str, intent: str = "chat", emotion: str = "neutral") -> Non
                     temp = cache.save_cached_file(
                         hash_key,
                         temp,
-                        sentence,
+                        speech_text,
                         VOICE_ID,
                         "eleven_turbo_v2_5",
                         emotion,
@@ -363,15 +391,15 @@ def _run_speak(text: str, intent: str = "chat", emotion: str = "neutral") -> Non
                         if stop_event.is_set() or mic_interrupt.is_set():
                             pygame.mixer.music.stop()
                             pygame.mixer.music.unload()
-                            _store_resume(sentences, i)
+                            _store_resume(resume_sentences, i)
                             return
 
                         time.sleep(0.05)
 
                     pygame.mixer.music.unload()
 
-                    continue
-
+                    return
+                
                 except Exception as e:
 
                     print(f"{Fore.RED}[ElevenLabs Disabled] {e}")
@@ -379,9 +407,9 @@ def _run_speak(text: str, intent: str = "chat", emotion: str = "neutral") -> Non
                     ELEVEN_AVAILABLE = False
 
 
-            # ---------- EDGE ----------
-            speak_edge(sentence)
-            continue
+        # ---------- EDGE ----------
+        speak_edge(speech_text)
+        return
 
 
         # All sentences played
