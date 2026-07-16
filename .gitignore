@@ -17,7 +17,6 @@ __pycache__/
 # Environment Variables
 # -------------------------
 .env
-.env.*
 
 # -------------------------
 # Node.js
@@ -50,6 +49,7 @@ logs/
 # Voice / Audio Cache
 # -------------------------
 voice_cache/
+voice/cache/
 .voice_cache/
 voice_cache_*.mp3
 

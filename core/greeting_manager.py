@@ -38,8 +38,8 @@ _WISDOM = [
 # ── Greeting pools ────────────────────────────────────────────────────────────
 _MORNING = [
     "Good morning {addr}. Everything is operational.",
-    "Good morning {addr}. Systems are ready.",
-    "Morning {addr}. Ready when you are.",
+    "Good morning {addr}. Systems are ready. Sir, aapka din shubh ho.",
+    "Morning {addr}. Ready when you are. sir, aapka din shubh ho.",
     "Good morning {addr}. All modules online.",
     "Good morning {addr}. Hope you slept well. Systems are up.",
     "Morning {addr}. Nothing critical overnight. Let's go.",
@@ -128,7 +128,7 @@ def _save_last(greeting: str) -> None:
 
 
 def _pick_address(memory=None) -> str:
-    addresses = ["Sir", "Boss", "Rajveer"]
+    addresses = ["Sir", "Rajveer"]
     last = None
     if memory:
         try:

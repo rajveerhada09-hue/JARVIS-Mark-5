@@ -62,9 +62,9 @@ def check_system_health() -> list:
         power_plugged = battery.power_plugged
         alerts = []
         if percent < 20 and not power_plugged:
-            alerts.append(f"Warning Boss: Battery is low at {percent} percent. Please connect the power supply.")
+            alerts.append(f"Warning Sir: Battery is low at {percent} percent. Please connect the power supply.")
         if percent == 100 and power_plugged:
-            alerts.append("Notification Boss: Battery is fully charged. You may disconnect the charger.")
+            alerts.append("Notification Sir: Battery is fully charged. You may disconnect the charger.")
         return alerts
     except Exception:
         return []
@@ -138,7 +138,7 @@ def monitor_user_activity(
             if env.low_battery() and _can_alert("battery"):
                 battery = psutil.sensors_battery()
                 pct     = int(battery.percent) if battery else 0
-                _speak(f"Boss, battery {pct} percent pe hai. Charger lagao.")
+                _speak(f"Sir, battery {pct} percent pe hai. Charger lagao.")
 
             # ── High CPU ─────────────────────────────────────────────────────
             try:
@@ -150,7 +150,7 @@ def monitor_user_activity(
 
             # ── Internet ─────────────────────────────────────────────────────
             if not env.internet_connected() and _can_alert("no_internet"):
-                _speak("Boss, internet connection nahi hai. Check karo.")
+                _speak("Sir, internet connection nahi hai. Check karo.")
 
             # ── Idle time ────────────────────────────────────────────────────
             if activity_event is not None:

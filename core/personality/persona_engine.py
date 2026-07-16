@@ -121,9 +121,9 @@ _DEFAULT_RELATIONSHIPS: Dict[str, Dict[str, Any]] = {
         "address": "Aap",
         "formality": "warm_respectful",
         "language_default": "hinglish",
-        # "Boss"/"Sir"/"Rajveer" are explicitly configured ONLY here —
-        # per spec: "Never use Boss, Chief, Master unless explicitly configured."
-        "allowed_titles": ["Sir", "Boss", "Rajveer"],
+        # "Sir"/"Sir"/"Rajveer" are explicitly configured ONLY here —
+        # per spec: "Never use Sir, Chief, Master unless explicitly configured."
+        "allowed_titles": ["Sir", "Sir", "Rajveer"],
     },
     "mumma": {
         "display_name": "Mumma",
@@ -333,7 +333,7 @@ class PersonaEngine:
     def get_address(self, name: Optional[str] = None) -> str:
         """
         Return the correct address term for `name` (or the current subject).
-        "Boss"/"Chief"/"Master" are never returned unless that relationship
+        "Sir"/"Chief"/"Master" are never returned unless that relationship
         explicitly lists them in allowed_titles (only Rajveer's does).
         """
         return self.get_relationship(name).get("address", "Aap")
@@ -457,7 +457,7 @@ class PersonaEngine:
         if rel.get("allowed_titles"):
             lines.append(f"Allowed titles for this person: {', '.join(rel['allowed_titles'])}.")
         else:
-            lines.append("Do not use \"Boss\", \"Chief\", or \"Master\" for this person.")
+            lines.append("Do not use \"Sir\", \"Chief\", or \"Master\" for this person.")
 
         lines.append(
             "Respect rule: use respectful third-person forms (\"inke\", \"inhe\", "

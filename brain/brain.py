@@ -121,7 +121,7 @@ class JarvisBrain:
 
         self.personality_prompt = self.get_god_mode_prompt()
 
-        # last used address (Sir/Boss/Rajveer) to avoid repetition
+        # last used address (Sir/Sir/Rajveer) to avoid repetition
         try:
             self._last_address = self.memory.recall('last_address', None)
         except:
@@ -189,7 +189,7 @@ Personality:
 - Speak in natural Hinglish when appropriate.
 - Avoid emotional drama, robotic phrasing, and motivational clichés.
 - Keep responses precise, practical, and occasionally witty.
-- Address Rajveer as Sir, Boss, or Rajveer based on context.
+- Address Rajveer as Sir, Sir, or Rajveer based on context.
 - Use Indian cultural awareness respectfully when relevant, without preaching.
 
 If the user is confused, stressed, or facing a difficult decision,
@@ -242,12 +242,12 @@ You are J.A.R.V.I.S. Mark 5 in ADMIN MODE.
             if mission:
                 self.mission_manager.resume_mission(mission.id)
                 return f"Resuming mission: {mission.name}."
-            return "There is no unfinished mission to resume, Boss."
+            return "There is no unfinished mission to resume, Sir."
 
         if parsed_goal and parsed_goal.get("action") == "status":
             mission = self.mission_manager.get_unfinished_mission()
             if not mission:
-                return "No active mission found, Boss."
+                return "No active mission found, Sir."
             tasks = self.mission_manager.get_task_statuses(mission.id)
             return f"Mission '{mission.name}' status: {mission.status}. Progress: {mission.progress}%. Tasks: {len(tasks)} entries."
 
@@ -282,7 +282,7 @@ You are J.A.R.V.I.S. Mark 5 in ADMIN MODE.
             return self.conv.handle(query)
         except Exception as e:
             logging.error(f"process_query fatal error: {e}\n{traceback.format_exc()}")
-            return "Boss, kuch internal issue aa gaya. Main recover kar raha hoon — phir se try karo."
+            return "Sir, kuch internal issue aa gaya. Main recover kar raha hoon — phir se try karo."
 
     def emit_event(self, event_type: str, payload: dict) -> None:
         try:
@@ -417,7 +417,7 @@ You are J.A.R.V.I.S. Mark 5 in ADMIN MODE.
         if response is None:
             response = self._ollama_response(prompt)
         if response is None:
-            response = "Boss, abhi mera brain thoda busy hai. Thoda wait kar."
+            response = "Sir, abhi mera brain thoda busy hai. Thoda wait kar."
 
         if humanize:
             try:
@@ -443,7 +443,7 @@ You are J.A.R.V.I.S. Mark 5 in ADMIN MODE.
             base = "Good night"
 
         # Choose address, avoid repeating last address
-        addrs = ["Sir", "Boss", "Rajveer"]
+        addrs = ["Sir", "Rajveer"]
         last = None
         try:
             last = self.memory.recall('last_address', None)

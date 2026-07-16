@@ -1,1 +1,102 @@
-{}
+{
+    "ac0ea543695bdf19add34f822286cb5620fc28cdbf63814e9fabeefc167bf1bb": {
+        "text": "Good afternoon Sir. All systems nominal.",
+        "voice": "nPczCjzI2devNBz1zQrb",
+        "model": "eleven_turbo_v2_5",
+        "emotion": "neutral",
+        "created": "2026-07-15 13:05:11.967446",
+        "last_used": "2026-07-15 13:05:11.967446",
+        "hits": 1,
+        "file": "ac0ea543695bdf19add34f822286cb5620fc28cdbf63814e9fabeefc167bf1bb.mp3"
+    },
+    "f9332717fb47c3d338392bc301ecb19c511f66135b65ab2db00f42e7c2f5529f": {
+        "text": "Good afternoon Boss. All systems nominal.",
+        "voice": "nPczCjzI2devNBz1zQrb",
+        "model": "eleven_turbo_v2_5",
+        "emotion": "neutral",
+        "created": "2026-07-15 13:05:52.077920",
+        "last_used": "2026-07-15 13:05:52.077920",
+        "hits": 1,
+        "file": "f9332717fb47c3d338392bc301ecb19c511f66135b65ab2db00f42e7c2f5529f.mp3"
+    },
+    "7eb37ba7cf7269959f39cc399280c963345c17d647383743ecf9713929bd748b": {
+        "text": "Brain is currently unavailable, Boss.",
+        "voice": "nPczCjzI2devNBz1zQrb",
+        "model": "eleven_turbo_v2_5",
+        "emotion": "neutral",
+        "created": "2026-07-15 13:07:32.107492",
+        "last_used": "2026-07-15 13:08:06.031241",
+        "hits": 3,
+        "file": "7eb37ba7cf7269959f39cc399280c963345c17d647383743ecf9713929bd748b.mp3"
+    },
+    "ed9b6907ea7ef4423774ccebf13a4a919a3b25eb520f4e2a5e745c37237d0f71": {
+        "text": "Yes Boss?",
+        "voice": "nPczCjzI2devNBz1zQrb",
+        "model": "eleven_turbo_v2_5",
+        "emotion": "neutral",
+        "created": "2026-07-15 13:07:59.202416",
+        "last_used": "2026-07-15 13:07:59.202416",
+        "hits": 1,
+        "file": "ed9b6907ea7ef4423774ccebf13a4a919a3b25eb520f4e2a5e745c37237d0f71.mp3"
+    },
+    "70d37109602688f73dccf82f53c78646f7db7caf80e337a11bc2554d3d424d4a": {
+        "text": "Good evening Sir. Wrap up karna hai ya aur kaam?",
+        "voice": "nPczCjzI2devNBz1zQrb",
+        "model": "eleven_turbo_v2_5",
+        "emotion": "neutral",
+        "created": "2026-07-16 18:58:40.568938",
+        "last_used": "2026-07-16 18:58:40.568938",
+        "hits": 1,
+        "file": "70d37109602688f73dccf82f53c78646f7db7caf80e337a11bc2554d3d424d4a.mp3"
+    },
+    "04e91f1e566cbb419612208d1bf369fd8fa511afe804e1f3e1a4b4c199dafd62": {
+        "text": "Yeh manage karte hain Boss, Rajveer, yeh sunkar achha laga. Meri toh koi physical form nahi hai, toh technically 'meet' toh nahi kar sakta. Par, agar aap unke baare mein kuch share karna chahein, ya unke liye koi information process karni ho, I'm always ready. Unhein mera virtual pranaam kahiyega, please. Aur kuch chahiye ho to batao.",
+        "voice": "nPczCjzI2devNBz1zQrb",
+        "model": "eleven_turbo_v2_5",
+        "emotion": "friendly",
+        "created": "2026-07-16 18:59:09.187681",
+        "last_used": "2026-07-16 18:59:09.187681",
+        "hits": 1,
+        "file": "04e91f1e566cbb419612208d1bf369fd8fa511afe804e1f3e1a4b4c199dafd62.mp3"
+    },
+    "707850829b78b83f1a96ebce8a3b61f0b21505883e9eb1b01ece2bacfa5c1315": {
+        "text": "Good evening. I'm J.A.R.V.I.S. \u2014 Just A Rather Very Intelligent System, Mark 5. I was designed and engineered by Rajveer Singh Rajput as a personal AI operating system. I handle voice commands, automation, memory, system monitoring, and natural conversation \u2014 all running locally on this machine. It's a pleasure to meet you.",
+        "voice": "nPczCjzI2devNBz1zQrb",
+        "model": "eleven_turbo_v2_5",
+        "emotion": "friendly",
+        "created": "2026-07-16 18:59:43.347105",
+        "last_used": "2026-07-16 18:59:43.347105",
+        "hits": 1,
+        "file": "707850829b78b83f1a96ebce8a3b61f0b21505883e9eb1b01ece2bacfa5c1315.mp3"
+    },
+    "fda2b0489474fedd85450871b74221c6fbb57a65d23f86ae0a40efd57d1d5713": {
+        "text": "Certainly, Rajveer, main samajh raha hoon ki kabhi-kabhi control panels ke shortcuts kaam nahi karte. Par Mummy ji ko 'band' karne ka function toh universe ke kisi software mein nahi hai, Sir. Kya koi specific situation hai jisse aap divert karna chahte hain, ya unki kisi baat ko pause karna hai? Thoda aur context denge toh main shayad koi practical solution nikal saku. Let me know if you need further clarification.",
+        "voice": "nPczCjzI2devNBz1zQrb",
+        "model": "eleven_turbo_v2_5",
+        "emotion": "friendly",
+        "created": "2026-07-16 19:00:29.662628",
+        "last_used": "2026-07-16 19:00:29.662628",
+        "hits": 1,
+        "file": "fda2b0489474fedd85450871b74221c6fbb57a65d23f86ae0a40efd57d1d5713.mp3"
+    },
+    "8ca48c588b7fc5df7c723518179958be4e8cd787b12d9db011038b637e7c2bc4": {
+        "text": "Good evening. I'm J.A.R.V.I.S., Rajveer's personal AI operating intelligence. Mark 5 is the current version \u2014 built for voice interaction, task automation, real-time system awareness, and long-term memory. Everything you're seeing was designed and engineered by Rajveer. How can I help?",
+        "voice": "nPczCjzI2devNBz1zQrb",
+        "model": "eleven_turbo_v2_5",
+        "emotion": "friendly",
+        "created": "2026-07-16 19:01:11.815414",
+        "last_used": "2026-07-16 19:01:11.815414",
+        "hits": 1,
+        "file": "8ca48c588b7fc5df7c723518179958be4e8cd787b12d9db011038b637e7c2bc4.mp3"
+    },
+    "26088fc189bfacab5ef54b0c809ec1d0d4db43de2253e4c38a59daa975006a1a": {
+        "text": "Right. Visual creator. Theek hai, Rajveer. Aap kis tarah ka visual content banana chahte hain? Images generate karne hain, ya videos edit karne hain, ya phir koi presentation design karani hai? Thoda aur context milega toh main aapko sahi tool ya approach suggest kar paunga. Let me know if you need further clarification.",
+        "voice": "nPczCjzI2devNBz1zQrb",
+        "model": "eleven_turbo_v2_5",
+        "emotion": "friendly",
+        "created": "2026-07-16 19:01:48.700100",
+        "last_used": "2026-07-16 19:01:48.700100",
+        "hits": 1,
+        "file": "26088fc189bfacab5ef54b0c809ec1d0d4db43de2253e4c38a59daa975006a1a.mp3"
+    }
+}

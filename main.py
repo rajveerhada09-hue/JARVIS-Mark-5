@@ -8,6 +8,7 @@ PURPOSE : Bootstrap layer only. Initializes the kernel and runs the voice loop.
 ============================================================
 """
 
+
 import json
 import os
 import signal
@@ -24,10 +25,12 @@ from colorama import Fore, init
 from dotenv import load_dotenv
 
 from core.kernel import Kernel
+from utils.logger import logger
 from core.greeting_manager import time_aware_greeting
 from core.startup_audio import play_startup_audio
 from voice.speech import listen
 from voice.voice import is_speaking, speak
+
 
 warnings.filterwarnings("ignore")
 init(autoreset=True)
@@ -73,8 +76,8 @@ def start_hud_server():
         with TCPServer(("", HUD_SERVER_PORT), JarvisHandler) as httpd:
             print(Fore.GREEN + f"[SYSTEM] HUD Server Online at http://localhost:{HUD_SERVER_PORT}")
             httpd.serve_forever()
-    except Exception as exc:
-        print(Fore.RED + f"[HUD SERVER ERROR] {exc}")
+    except Exception:
+        logger.exception("HUD Server Crash")
 
 
 def launch_hud():
@@ -84,6 +87,7 @@ def launch_hud():
             subprocess.Popen(["npm", "start"], cwd=hud_path, shell=True)
             print(Fore.GREEN + "[HUD] Electron HUD launched.")
     except Exception as exc:
+        logger.exception("HUD Launch Failed")
         print(Fore.RED + f"[HUD ERROR] {exc}")
 
 
@@ -92,23 +96,25 @@ def launch_hud():
 
 
 def boot_sequence(config):
-    print("Booting JARVIS...")
-
-    kernel.initialize()
-    #start_startup_audio()
-
     try:
+        print("Booting JARVIS...")
+
+        kernel.initialize()
+
         greeting = time_aware_greeting(
             memory=kernel.get_service("memory")
         )
 
         speak(greeting)
 
-    except Exception as exc:
-        print(Fore.YELLOW + f"[BOOT] Greeting skipped: {exc}")
+        launch_hud()
 
-    launch_hud()
-    return True
+        return True
+
+    except Exception:
+        logger.exception("Boot sequence failed")
+        traceback.print_exc()
+        return False
 
 
 def graceful_shutdown():
@@ -153,7 +159,7 @@ def run_voice_loop(wake_words):
             conversation_timeout = time.time() + 40
 
             if not clean_cmd:
-                speak("Yes Boss?")
+                speak("Yes Sir?")
                 continue
 
             print(f"➤ ACTION: {clean_cmd.upper()}")
@@ -165,9 +171,9 @@ def run_voice_loop(wake_words):
 
         except KeyboardInterrupt:
             break
-        except Exception:
-            print(Fore.RED + "[ERROR]")
-            traceback.print_exc()
+        except Exception as e:
+            logger.exception("Voice Loop Crash")
+            print(Fore.RED + f"[ERROR] {e}")
 
 
 def main():
@@ -188,7 +194,12 @@ def main():
 if __name__ == "__main__":
     try:
         main()
+
     except KeyboardInterrupt:
         graceful_shutdown()
+
+    except Exception:
+        logger.exception("Fatal System Crash")
+
     finally:
         sys.exit(0)

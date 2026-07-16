@@ -53,8 +53,8 @@ def _clean_ai_phrases(text: str) -> str:
 CONFIRMATIONS = [
     "Done.", "Ho gaya.", "Finished.", "All set.", "Ready.",
     "Task complete.", "Completed.", "Kaam ho gaya.", "Sorted.",
-    "Yeh kar diya.", "Done Sir.", "Done Boss.", "Finished Sir.",
-    "All done Boss.", "Set ho gaya.", "Chaliye.", "Done. Kuch aur?",
+    "Yeh kar diya.", "Done Sir.", "Done Sir.", "Finished Sir.",
+    "All done Sir.", "Set ho gaya.", "Chaliye.", "Done. Kuch aur?",
     "Ready Rajveer.", "Ho gaya Sir.", "Theek hai, ho gaya.",
 ]
 OPENING = [
@@ -72,7 +72,7 @@ ACKS = [
     "Haan.", "Ji.", "Bilkul.", "Theek hai.", "Got it.",
     "Clear hai.", "Sahi hai.", "Noted.", "Understood.", "Samajh gaya.",
     "Sure.", "Yep.", "Copy that.", "Roger.", "Main sun raha hoon.",
-    "Haan Boss.", "Haan Sir.", "Ji Rajveer.", "Clear.",
+    "Haan Sir.", "Haan Sir.", "Ji Rajveer.", "Clear.",
 ]
 WAIT = [
     "Ek second.", "Ek minute.", "Just a moment.", "Coming up.",
@@ -80,17 +80,17 @@ WAIT = [
     "Working on it.", "Give me a moment.", "Ruko.", "Dekh raha hoon.",
 ]
 LISTENING = [
-    "Haan Boss?", "Listening Sir.", "Bol.", "Haan?", "Suno raha hoon.",
+    "Haan Sir?", "Listening Sir.", "Bol.", "Haan?", "Suno raha hoon.",
     "Ready.", "Batao.", "Main yahan hoon.", "I'm here.", "Speak Sir.",
-    "Ready Sir.", "Haan Rajveer?", "Bol Boss.", "Main ready hoon.",
+    "Ready Sir.", "Haan Rajveer?", "Bol Sir.", "Main ready hoon.",
 ]
 THANKS = [
-    "Always.", "My pleasure Sir.", "Anytime Boss.", "Koi baat nahi.",
+    "Always.", "My pleasure Sir.", "Anytime Sir.", "Koi baat nahi.",
     "Bas aise hi.", "Always here.", "No problem.", "Kabhi bhi.",
     "Happy to.", "Yahin hoon.", "Yeh toh banta hai.", "Kuch aur?",
 ]
 POSITIVE = [
-    "Excellent Sir.", "Nice work Boss.", "Well done.", "Sahi kiya.",
+    "Excellent Sir.", "Nice work Sir.", "Well done.", "Sahi kiya.",
     "Bahut badhiya.", "Great.", "Solid.", "Perfect.", "Acha kiya.",
     "That's good to hear.", "Noted.", "Achi progress hai.",
     "Bahut acha.", "Keep going.", "Lag raha hai ban jaayega.",
@@ -104,7 +104,7 @@ ERROR_RESPONSES = [
     "Module missing lag raha hai.", "Environment check karte hain.",
 ]
 GOODBYE = [
-    "Take care Sir.", "Theek hai Boss.", "Alvida.",
+    "Take care Sir.", "Theek hai Sir.", "Alvida.",
     "Systems remain active.", "I'll keep things running.",
     "Main yahan rahunga.", "Anytime.", "See you Sir.",
     "Jaate rahe. Main monitoring karta rahunga.",
@@ -112,7 +112,7 @@ GOODBYE = [
 ]
 CASUAL = [
     "Sab theek chal raha hai.", "Systems nominal.", "Sab ready hai.",
-    "Nothing critical.", "All clear.", "Chill hai Boss.",
+    "Nothing critical.", "All clear.", "Chill hai Sir.",
     "Everything's good.", "Sab green hai.", "No alerts.",
     "Smooth sailing.", "All good here.", "Quiet for now.",
 ]
@@ -126,12 +126,12 @@ STRESSED = [
     "Deep breath. Phir batao kya tackle karna hai.",
 ]
 MOOD_POS = [
-    "Achha suna.", "Good to hear Boss.", "That's great.", "Mast hai.",
+    "Achha suna.", "Good to hear Sir.", "That's great.", "Mast hai.",
     "Solid.", "Let's keep it going.", "Acha hai Sir.", "Nice.",
     "Progress ho rahi hai.", "That's the way.", "Keep at it.",
 ]
 HUMOR = [
-    "Noted, Boss.", "Classic.", "Interesting choice.",
+    "Noted, Sir.", "Classic.", "Interesting choice.",
     "Main judge nahi kar raha.", "Sure, why not.",
     "Alright then.", "Bold move.", "Theek hai, aap bole to.",
     "As you wish.", "Aisa sirf main kar sakta hoon.",
@@ -260,7 +260,7 @@ class HumanLayer:
         return f"{opener} {text}\n\n{ending}"
 
     def _pick_address(self, last_from_metadata: Optional[str] = None) -> str:
-        addresses = ["Sir", "Boss", "Rajveer"]
+        addresses = ["Sir", "Sir", "Rajveer"]
         last      = last_from_metadata or self._last_address
         choices   = [a for a in addresses if a != last]
         if not choices:

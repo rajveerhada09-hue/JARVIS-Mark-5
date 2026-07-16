@@ -45,7 +45,7 @@ def call_node_engine(command, argument=""):
 def open_app(query):
     query = query.lower().strip()
     if query in APPS:
-        speak(f"Opening {query}, Boss.")
+        speak(f"Opening {query}, Sir.")
         call_node_engine("open_app", APPS[query])
     else:
         speak(f"Searching for {query} on your environment.")
@@ -54,7 +54,7 @@ def open_app(query):
 def system_status():
     cpu = psutil.cpu_percent()
     ram = psutil.virtual_memory().percent
-    report = f"Boss, the CPU utilization stands at {cpu} percent, while the memory load is at {ram} percent."
+    report = f"Sir, the CPU utilization stands at {cpu} percent, while the memory load is at {ram} percent."
     speak(report)
     return report
 
@@ -63,10 +63,10 @@ def volume_control(action):
         for _ in range(5): pyautogui.press("volumeup")
     elif action == "down":
         for _ in range(5): pyautogui.press("volumedown")
-    speak("Adjustment complete, Boss.")
+    speak("Adjustment complete, Sir.")
 
 def lock_pc():
-    speak("Securing the primary workstation immediately, Boss.")
+    speak("Securing the primary workstation immediately, Sir.")
     ctypes.windll.user32.LockWorkStation()
 
 # =========================================================================
@@ -109,7 +109,7 @@ def pc_control_master(cmd):
 
         open_app(app)
 
-        return f"Opening {app}, Boss."
+        return f"Opening {app}, Sir."
 
     # SYSTEM STATUS
     elif "system status" in cmd:

@@ -33,7 +33,7 @@ try:
     from .widget_manager import WidgetManager
     
     # Ye line confirm karti hai ki core folder load ho gaya hai
-    print("Neural Handshake: Core systems initialized, Boss.")
+    print("Neural Handshake: Core systems initialized, Sir.")
     
 except ImportError as e:
     print(f"Neural Link Error: Module missing in core. {e}")

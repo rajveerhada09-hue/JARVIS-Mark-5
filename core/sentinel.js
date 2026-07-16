@@ -25,7 +25,7 @@ setInterval(() => {
         if (info > 80) { // Agar CPU 80% se upar gaya
             notifier.notify({
                 title: 'JARVIS CRITICAL ALERT',
-                message: `Boss, CPU usage is at ${info}%. Closing background apps...`,
+                message: `Sir, CPU usage is at ${info}%. Closing background apps...`,
                 sound: true, // Windows default sound
                 wait: true
             });
@@ -38,4 +38,4 @@ const { SerialPort } = require('serialport');
 console.log("Searching for connected hardware (Arduino/Robots)...");
 
 // 3. Simple Notification for Start
-notifier.notify('JARVIS Sentinel Mode Active, Boss!');
+notifier.notify('JARVIS Sentinel Mode Active, Sir!');

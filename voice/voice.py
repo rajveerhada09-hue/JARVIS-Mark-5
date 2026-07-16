@@ -2,7 +2,7 @@
 ============================================================
 PROJECT : JARVIS MARK 5
 FILE    : voice.py
-PATH    : voice/newvoice.py
+PATH    : voice/voice.py
 
 CHANGES vs original:
   1. Added interrupt/resume system:
@@ -30,11 +30,10 @@ import os
 import re
 import time
 import threading
+import logging
 import uuid
 import traceback
 from queue import Queue, Empty
-
-
 import pygame
 import pyttsx3
 from dotenv import load_dotenv
@@ -69,7 +68,7 @@ VOICE_STYLES = {
 }
 voices = engine.getProperty("voices")
 engine.setProperty("voice", voices[0].id)
-engine.setProperty("rate", 135)
+engine.setProperty("rate", 150)
 CACHE_DIR = Path("voice/cache")
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 cache = VoiceCacheManager()
@@ -90,6 +89,19 @@ voice_queue    = Queue()
 stop_event     = threading.Event()
 speaking_event = threading.Event()
 mic_interrupt  = threading.Event()
+
+# ===== BARGE-IN =====
+
+interrupt_event = threading.Event()
+
+def trigger_barge_in():
+    interrupt_event.set()
+
+def clear_barge_in():
+    interrupt_event.clear()
+
+def is_barge_requested():
+    return interrupt_event.is_set()
 
 # ── Resume buffer (new) ───────────────────────────────────────────────────────
 # Stores (list_of_sentences, index_of_next_sentence_to_speak)
@@ -280,6 +292,7 @@ def _run_speak(text: str, intent: str = "chat", emotion: str = "neutral") -> Non
     speaking_event.set()
     stop_event.clear()
     mic_interrupt.clear()
+    clear_barge_in()
 
     sentences = _split_sentences(text)
 
@@ -304,7 +317,7 @@ def _run_speak(text: str, intent: str = "chat", emotion: str = "neutral") -> Non
         # ElevenLabs ko ek hi baar pura text bhejna hai
         speech_text = " ".join(sentences)
         i = 0
-        if stop_event.is_set() or mic_interrupt.is_set():
+        if stop_event.is_set() or mic_interrupt.is_set() or interrupt_event.is_set():
                 _store_resume(resume_sentences, i)
                 return
 
@@ -330,7 +343,7 @@ def _run_speak(text: str, intent: str = "chat", emotion: str = "neutral") -> Non
 
                 while pygame.mixer.music.get_busy():
 
-                    if stop_event.is_set() or mic_interrupt.is_set():
+                    if stop_event.is_set() or mic_interrupt.is_set() or interrupt_event.is_set():
                         pygame.mixer.music.stop()
                         pygame.mixer.music.unload()
                         _store_resume(resume_sentences, i)
@@ -366,7 +379,7 @@ def _run_speak(text: str, intent: str = "chat", emotion: str = "neutral") -> Non
 
                         for chunk in audio_stream:
 
-                            if stop_event.is_set() or mic_interrupt.is_set():
+                            if stop_event.is_set() or mic_interrupt.is_set() or interrupt_event.is_set():
                                 _store_resume(resume_sentences, i)
                                 return
 
@@ -388,7 +401,7 @@ def _run_speak(text: str, intent: str = "chat", emotion: str = "neutral") -> Non
 
                     while pygame.mixer.music.get_busy():
 
-                        if stop_event.is_set() or mic_interrupt.is_set():
+                        if stop_event.is_set() or mic_interrupt.is_set() or interrupt_event.is_set():
                             pygame.mixer.music.stop()
                             pygame.mixer.music.unload()
                             _store_resume(resume_sentences, i)
@@ -418,6 +431,7 @@ def _run_speak(text: str, intent: str = "chat", emotion: str = "neutral") -> Non
     except Exception as e:
         print(f"{Fore.RED}[VOICE ERROR] {e}")
         traceback.print_exc()
+        logging.exception("Voice Playback Crash")
         try:
             engine.say(str(text))
             engine.runAndWait()

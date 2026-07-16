@@ -1,4 +1,5 @@
 import traceback
+import logging
 from core.intent_engine import IntentEngine
 from core.tool_manager import ToolManager
 
@@ -149,13 +150,14 @@ class Kernel:
                 result = callback(payload)
             except Exception:
                 traceback.print_exc()
+        logging.exception("Kernel Event Crash")
 
         return result
 
     # ---------------- QUERY PIPELINE ----------------
     def process_query(self, query: str):
         if self._paused:
-            return "System is paused, Boss."
+            return "System is paused, Sir."
 
         query = query.lower().strip()
         intent = self.intent_engine.classify(query)
@@ -173,7 +175,7 @@ class Kernel:
             return brain.process_query(query)
            
 
-        return "Brain is currently unavailable, Boss."
+        return "Brain is currently unavailable, Sir."
 
     def pause(self):
         self._paused = True
@@ -228,7 +230,7 @@ class Kernel:
         workspace = self.get_service("workspace")
 
         if workspace is None:
-            return "Workspace manager is currently unavailable, Boss."
+            return "Workspace manager is currently unavailable, Sir."
 
         return workspace.launch_workspace(query)
 
@@ -236,7 +238,7 @@ class Kernel:
         brain = self.get_service("brain")
 
         if brain is None:
-            return "Brain is currently unavailable, Boss."
+            return "Brain is currently unavailable, Sir."
 
         return brain.process_query(query)
 
@@ -260,8 +262,8 @@ class Kernel:
         return self.services.get(name)
     
     def subscribe(self, event_name, callback):
-     if event_name not in self.event_bus:
-        self.event_bus[event_name] = []
+        if event_name not in self.event_bus:
+            self.event_bus[event_name] = []
 
         self.event_bus[event_name].append(callback)
 

@@ -1,24 +1,8 @@
-/*
-============================================================
-PROJECT : JARVIS MARK 5
-
-FILE    : package.json
-
-PATH    : package.json
-
-PURPOSE :
-Module description pending.
-
-LAST UPDATED :
-2026-06-28
-
-============================================================
-*/
 
 {
   "name": "jarvis-mark-5",
   "version": "5.1.0",
-  "description": "Hybrid Neural OS - Boss Edition",
+  "description": "Hybrid Neural OS - Sir Edition",
   "main": "main.py",
   "scripts": {
     "start": "concurrently \"npm run jarvis\" \"npm run cron-tasks\" \"node core/mobile_server.js\"",

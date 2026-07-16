@@ -54,10 +54,10 @@ def capture_screen(source="laptop"):
 def analyze_any_screen(chat_session, source="laptop"):
     img_path = capture_screen(source)
     if not img_path:
-        return "Boss, mobile connect nahi hai. Laptop screen dekhu?"
+        return "Sir, mobile connect nahi hai. Laptop screen dekhu?"
 
     img = Image.open(img_path)
-    prompt = f"Analyze this {source} screen for Rajveer. Explain what's happening and end with 'Boss'."
+    prompt = f"Analyze this {source} screen for Rajveer. Explain what's happening and end with 'Sir'."
     
     response = chat_session.send_message([prompt, img])
     os.remove(img_path)

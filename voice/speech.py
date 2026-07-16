@@ -4,7 +4,7 @@ PROJECT : JARVIS MARK 5
 
 FILE    : speech.py
 
-PATH    : core\speech.py
+PATH    : voice\speech.py
 
 PURPOSE :
 Captures microphone input and converts speech into text.
@@ -19,6 +19,7 @@ import queue
 import sounddevice as sd
 import os
 import time
+import logging
 import numpy as np
 import subprocess
 import traceback
@@ -30,6 +31,10 @@ print("[LISTENER] Initializing with Auto-Mute + Google Speech Recognition...")
 # GLOBAL STATES
 # =========================
 MUTED = False
+from voice.voice import (
+    is_speaking,
+    trigger_barge_in,
+)
 
 def mute_system_audio(mute=True):
     """Mute / Unmute system audio on Windows using NirCmd"""
@@ -79,7 +84,18 @@ class JarvisListener:
 
             print("[VOICE] Speech Recognized")
             text = self.recognizer.recognize_google(audio, language='en-in')
-            print(f"[VOICE] Final transcript: {text}")
+            if is_speaking():
+
+                if any(word in text.lower() for word in [
+                    "stop",
+                    "pause",
+                    "mute",
+                    "shut up",
+                    "jarvis"
+                ]):
+                    print("[BARGE-IN] Interrupt Requested")
+                    trigger_barge_in()
+                    print(f"[VOICE] Final transcript: {text}")
             return text.lower()
 
         except sr.WaitTimeoutError:
@@ -95,6 +111,7 @@ class JarvisListener:
         except Exception as e:
             print(f"[VOICE ERROR] {e}")
             traceback.print_exc()
+            logging.exception("Speech Recognition Crash")
             return ""
         finally:
             mute_system_audio(False)   # Unmute TTS

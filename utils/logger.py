@@ -1,17 +1,19 @@
-"""
-============================================================
-PROJECT : JARVIS MARK 5
+import logging
+import os
 
-FILE    : logger.py
+os.makedirs("logs", exist_ok=True)
 
-PATH    : utils\logger.py
+logger = logging.getLogger("JARVIS")
+logger.setLevel(logging.INFO)
 
-PURPOSE :
-Module description pending.
+formatter = logging.Formatter(
+    "%(asctime)s | %(levelname)s | %(filename)s | %(funcName)s | %(message)s"
+)
 
-LAST UPDATED :
-2026-06-28
+file_handler = logging.FileHandler(
+    "logs/jarvis.log",
+    encoding="utf-8"
+)
+file_handler.setFormatter(formatter)
 
-============================================================
-"""
-
+logger.addHandler(file_handler)
