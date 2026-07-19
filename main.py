@@ -28,8 +28,9 @@ from core.kernel import Kernel
 from utils.logger import logger
 from core.greeting_manager import time_aware_greeting
 from core.startup_audio import play_startup_audio
-from voice.speech import listen
-from voice.voice import is_speaking, speak
+from voice.stt.speech import listen
+from voice.wakeword.wakeword import wait_for_wakeword
+from voice.tts.voice import is_speaking, speak
 
 
 warnings.filterwarnings("ignore")
@@ -38,13 +39,23 @@ load_dotenv()
 
 CONFIG_PATH = "jarvis_config.json"
 HUD_SERVER_PORT = 8000
-DEFAULT_WAKE_WORDS = ["jarvis", "jarves", "jervis", "jarvice", "jarwis", "service", "garvis", "hey jarvis"]
 
 kernel = Kernel()
 stop_event = threading.Event()
 conversation_mode = False
 conversation_timeout = 0
 
+def global_exception(exc_type, exc_value, exc_traceback):
+
+    logger.exception(
+        "UNCAUGHT EXCEPTION",
+        exc_info=(exc_type, exc_value, exc_traceback),
+    )
+
+    sys.__excepthook__(exc_type, exc_value, exc_traceback)
+
+
+sys.excepthook = global_exception
 
 def load_config():
     try:
@@ -91,8 +102,23 @@ def launch_hud():
         print(Fore.RED + f"[HUD ERROR] {exc}")
 
 
-#def start_startup_audio():
-    #threading.Thread(target=play_startup_audio, daemon=True).start()
+def start_startup_audio():
+    threading.Thread(
+        target=play_startup_audio,
+        daemon=True
+    ).start()
+
+def safe_thread(target):
+
+    def wrapper():
+
+        try:
+            target()
+
+        except Exception:
+            logger.exception("THREAD CRASH")
+
+    return wrapper
 
 
 def boot_sequence(config):
@@ -113,7 +139,6 @@ def boot_sequence(config):
 
     except Exception:
         logger.exception("Boot sequence failed")
-        traceback.print_exc()
         return False
 
 
@@ -130,64 +155,60 @@ def handle_shutdown(signum, frame):
     graceful_shutdown()
 
 
-def run_voice_loop(wake_words):
+def run_voice_loop():
     global conversation_mode, conversation_timeout
 
     while not stop_event.is_set():
-        if is_speaking():
-            time.sleep(0.1)
-            continue
 
         try:
-            raw_input = listen()
-            if not raw_input or not raw_input.strip():
-                continue
 
-            print(f"USER: {raw_input}")
-            clean_cmd = raw_input.lower().strip()
-
-            current_time = time.time()
-            is_wake = (conversation_mode and current_time < conversation_timeout) or any(word in clean_cmd for word in wake_words)
-
-            if not is_wake:
-                continue
-
-            for word in wake_words:
-                clean_cmd = clean_cmd.replace(word, "").strip()
-
-            conversation_mode = True
-            conversation_timeout = time.time() + 40
-
-            if not clean_cmd:
+            # Wait until wake word is detected
+            if not conversation_mode:
+                wait_for_wakeword()
+                conversation_mode = True
+                conversation_timeout = time.time() + 40
                 speak("Yes Sir?")
+
+            if is_speaking():
+                time.sleep(0.1)
                 continue
 
-            print(f"➤ ACTION: {clean_cmd.upper()}")
-            reply = kernel.process_query(clean_cmd)
+            text = listen()
+
+            if not text:
+                if time.time() > conversation_timeout:
+                    conversation_mode = False
+                continue
+
+            print(f"USER: {text}")
+
+            reply = kernel.process_query(text)
 
             if reply:
                 print(f"🤖 JARVIS: {reply}")
                 speak(reply)
 
-        except KeyboardInterrupt:
-            break
-        except Exception as e:
+            conversation_timeout = time.time() + 40
+
+        except Exception:
             logger.exception("Voice Loop Crash")
-            print(Fore.RED + f"[ERROR] {e}")
 
 
 def main():
     config = load_config()
-    wake_words = config.get("wake_words", DEFAULT_WAKE_WORDS)
+    
 
     signal.signal(signal.SIGINT, handle_shutdown)
     signal.signal(signal.SIGTERM, handle_shutdown)
 
-    threading.Thread(target=start_hud_server, daemon=True).start()
+    threading.Thread(
+    target=safe_thread(start_hud_server),
+    daemon=True
+).start()
     boot_sequence(config)
 
     print(Fore.GREEN + "✅ JARVIS Mark 5 Fully Loaded & Ready!")
-    run_voice_loop(wake_words)
+    run_voice_loop()
     graceful_shutdown()
 
 
@@ -198,8 +219,9 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         graceful_shutdown()
 
-    except Exception:
-        logger.exception("Fatal System Crash")
+    except Exception as e:
+        logger.exception("FATAL SYSTEM CRASH")
+        traceback.print_exc()
 
     finally:
         sys.exit(0)

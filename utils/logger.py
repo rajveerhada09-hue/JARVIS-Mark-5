@@ -4,16 +4,22 @@ import os
 os.makedirs("logs", exist_ok=True)
 
 logger = logging.getLogger("JARVIS")
-logger.setLevel(logging.INFO)
 
-formatter = logging.Formatter(
-    "%(asctime)s | %(levelname)s | %(filename)s | %(funcName)s | %(message)s"
-)
+if not logger.handlers:
 
-file_handler = logging.FileHandler(
-    "logs/jarvis.log",
-    encoding="utf-8"
-)
-file_handler.setFormatter(formatter)
+    logger.setLevel(logging.DEBUG)
 
-logger.addHandler(file_handler)
+    formatter = logging.Formatter(
+        "%(asctime)s | %(levelname)s | %(filename)s:%(lineno)d | %(funcName)s | %(message)s"
+    )
+
+    file_handler = logging.FileHandler(
+        "logs/jarvis.log",
+        encoding="utf-8"
+    )
+
+    file_handler.setFormatter(formatter)
+
+    logger.addHandler(file_handler)
+
+logger.propagate = False

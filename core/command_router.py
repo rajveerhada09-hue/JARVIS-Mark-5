@@ -31,6 +31,12 @@ def normalize_command(cmd: str) -> str:
         r"\bvisual studio\b": "vscode",
         r"\bvs ?code\b": "vscode",
         r"\bchat gpt\b": "chatgpt",
+        r"\bresume\b": "resume speech",
+        r"\bcontinue\b": "resume speech",
+        r"\bcontinue speaking\b": "resume speech",
+        r"\bcarry on\b": "resume speech",
+        r"\bgo on\b": "resume speech",
+        r"\bcontinue where you left\b": "resume speech",
         r"\brestart computer\b": "restart pc",
         r"\bshutdown computer\b": "shutdown",
         r"\bshutdown pc\b": "shutdown",
@@ -105,6 +111,17 @@ def route_command(cmd: str, gui=None, brain=None):
             "confidence": 0.96,
         }
 
+    # =================================================
+    # RESUME SPEECH
+    # =================================================
+    if cmd == "resume speech":
+        return {
+            "type": "voice",
+            "category": "resume",
+            "value": cmd,
+            "confidence": 1.0,
+        }
+    
     # =================================================
     # 3. SCHEDULED TASKS
     # =================================================

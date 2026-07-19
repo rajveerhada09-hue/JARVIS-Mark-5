@@ -42,7 +42,9 @@ from voice.cache_manager import VoiceCacheManager
 from elevenlabs import ElevenLabs
 from pathlib import Path
 from colorama import Fore, init
-
+from voice.voice_session import VoiceSession, Emotion, PlaybackState
+from voice.resume_manager import resume_manager
+from utils.logger import logger
 init(autoreset=True)
 load_dotenv()
 
@@ -103,55 +105,29 @@ def clear_barge_in():
 def is_barge_requested():
     return interrupt_event.is_set()
 
-# ── Resume buffer (new) ───────────────────────────────────────────────────────
-# Stores (list_of_sentences, index_of_next_sentence_to_speak)
-_resume_lock   = threading.Lock()
-_resume_buffer = None   # empty = nothing to resume
-
-
-def _split_sentences(text: str) -> list:
-    """Split text into speakable sentence units."""
-    parts = re.split(r"(?<=[.!?])\s+", text.strip())
-    return [p.strip() for p in parts if p.strip()]
-
-
-def _store_resume(sentences: list, next_index: int) -> None:
-    global _resume_buffer
-    with _resume_lock:
-        if next_index < len(sentences):
-            _resume_buffer = (sentences, next_index)
-            
-
-
-def _clear_resume() -> None:
-    global _resume_buffer
-    with _resume_lock:
-        _resume_buffer = None
-
-
 # ── VoiceBrain (original — unchanged) ────────────────────────────────────────
 class VoiceBrain:
     def __init__(self):
-        self.last_emotion = "neutral"
+        self.last_emotion = Emotion.NEUTRAL
 
     def analyze(self, text: str, intent: str = "chat"):
         t        = text.lower()
-        emotion  = "neutral"
+        emotion = Emotion.NEUTRAL
         priority = False
         if any(x in t for x in ["error", "critical", "down", "failed"]):
-            emotion  = "serious"
+            emotion = Emotion.NEUTRAL
             priority = True
         elif any(x in t for x in ["stop", "wait", "shut up", "silence"]):
-            emotion  = "firm"
+            emotion  = Emotion.FIRM
             priority = True
         elif intent in ["pc_control", "system"]:
-            emotion  = "confident"
+            emotion  = Emotion.CONFIDENT
             priority = True
         elif any(x in t for x in ["hello", "hi"]):
-            emotion  = "friendly"
+            emotion  = Emotion.FRIENDLY
         elif any(x in t for x in ["joke", "fun", "haha"]):
-            emotion  = "light"
-        if emotion == "neutral":
+            emotion  = Emotion.LIGHT
+        if emotion == Emotion.NEUTRAL:
             emotion = self.last_emotion
         else:
             self.last_emotion = emotion
@@ -159,6 +135,10 @@ class VoiceBrain:
 
 
 brain = VoiceBrain()
+
+# Currently speaking session
+current_session: VoiceSession | None = None
+
 def preprocess_hinglish(text: str) -> str:
     replacements = {
         "GPT": "G P T",
@@ -197,11 +177,16 @@ def speak(text: str, intent: str = "chat", priority: bool = False) -> None:
         _clear_queue()
         stop_speaking()
 
-    # Clear resume buffer when starting new speech
-    _clear_resume()
-
     try:
-        voice_queue.put((text, intent, emotion))
+        session = VoiceSession(
+            text=text,
+            intent=intent,
+            emotion=emotion,
+        )
+
+         
+
+        voice_queue.put(session)
         speaking_event.set()
         print(f"{Fore.CYAN}[TTS] Queued → intent={intent}, emotion={emotion}")
     except Exception as e:
@@ -213,50 +198,41 @@ def speak(text: str, intent: str = "chat", priority: bool = False) -> None:
 def stop_speaking() -> None:
     """Original signature preserved. Now also saves resume position."""
     stop_event.set()
-    try:
-        pygame.mixer.music.stop()
-        pygame.mixer.music.unload()
-        speaking_event.clear()
-    except Exception:
-        pass
-    _clear_queue()
+
+try:
+    pygame.mixer.music.stop()
+    pygame.mixer.music.unload()
+except Exception:
+    pass
+
+speaking_event.clear() 
 
 
 def is_speaking() -> bool:
     """Original signature preserved."""
     return speaking_event.is_set()
 
-
 def resume_speech() -> bool:
     """
-    NEW: Resume from where speech was interrupted.
-    Returns True if there was something to resume, False otherwise.
+    Resume the last interrupted VoiceSession.
     """
-    with _resume_lock:
-        buf = _resume_buffer
 
-    if not buf:
+    session = resume_manager.pop()
+
+    if session is None:
         return False
 
-    sentences, next_idx = buf
-    remaining = " ".join(sentences[next_idx:])
-    if remaining.strip():
-        _clear_resume()
-        speak(remaining)
-        return True
-    return False
+    voice_queue.put(session)
+    speaking_event.set()
+    return True
 
 
 def has_pending_resume() -> bool:
-    """NEW: Check if there is interrupted speech waiting to be resumed."""
-    with _resume_lock:
-        return bool(_resume_buffer)
+    return resume_manager.has_pending()
 
 
 def clear_resume_buffer() -> None:
-    """NEW: Discard any pending resume state."""
-    _clear_resume()
-
+    resume_manager.clear()
 
 # ── Queue management (original) ───────────────────────────────────────────────
 def _clear_queue() -> None:
@@ -268,95 +244,114 @@ def _clear_queue() -> None:
 
 
 def _worker() -> None:
-    """Original worker thread — sentence-level resume tracking added."""
+    global current_session
+
     while True:
+
         item = voice_queue.get()
+
         if item is None:
             break
+
         try:
-            text, intent, emotion = item
-            print(f"{Fore.CYAN}[TTS] Worker → intent={intent}, emotion={emotion}")
-            _run_speak(text, intent, emotion)
+            session = item
+
+            current_session = session
+
+            print(
+                f"{Fore.CYAN}[TTS] Worker → "
+                f"intent={session.intent}, emotion={session.emotion}"
+            )
+
+            _run_speak(session)
+
             print(f"{Fore.CYAN}[TTS] Worker finished")
+
         except Exception as e:
+
             print(f"{Fore.RED}[TTS WORKER ERROR] {e}")
+
             traceback.print_exc()
+
         finally:
+
+            current_session = None
+
             voice_queue.task_done()
 
-
 # ── Core engine (original + resume tracking) ──────────────────────────────────
-def _run_speak(text: str, intent: str = "chat", emotion: str = "neutral") -> None:
+
+def _run_speak(session: VoiceSession) -> None:
 
     global ELEVEN_AVAILABLE
+
     speaking_event.set()
     stop_event.clear()
     mic_interrupt.clear()
     clear_barge_in()
 
-    sentences = _split_sentences(text)
-
     try:
-        safe_text = str(text)
 
-        # Sirf technical responses ke liye abbreviations expand karo
+        safe_text = session.text
+        intent = session.intent
+        emotion = session.emotion
+
         if intent in ["system", "pc_control", "coding", "admin"]:
             safe_text = preprocess_hinglish(safe_text)
-        emotion, _ = brain.analyze(safe_text, intent)
 
         voice_style = VOICE_STYLES.get(
-    emotion,
-    {"stability": 0.75, "style": 0.3},
-)
+            emotion.value if hasattr(emotion, "value") else emotion,
+            {"stability": 0.75, "style": 0.3},
+        )
 
         print(f"{Fore.CYAN}🤖 JARVIS: {safe_text}")
-        
-        # Resume ke liye sentence list alag rahegi
-        resume_sentences = sentences
 
-        # ElevenLabs ko ek hi baar pura text bhejna hai
-        speech_text = " ".join(sentences)
-        i = 0
-        if stop_event.is_set() or mic_interrupt.is_set() or interrupt_event.is_set():
-                _store_resume(resume_sentences, i)
+        while not session.is_complete:
+
+            if stop_event.is_set() or mic_interrupt.is_set() or interrupt_event.is_set():
+                session.mark_interrupted()
+                resume_manager.save(session)
                 return
 
-            # ==========================
-            # CACHE
-            # ==========================
+            speech_text = session.current_sentence()
 
-        hash_key = cache.generate_hash(
+            if speech_text is None:
+                break
+
+            hash_key = cache.generate_hash(
                 speech_text,
                 VOICE_ID,
                 "eleven_turbo_v2_5",
-                emotion
+                emotion.value if hasattr(emotion, "value") else emotion,
             )
 
-        cached = cache.get_cached_file(hash_key)
+            cached = cache.get_cached_file(hash_key)
 
-            # ---------- Cached ----------
-        if cached and cached.exists():
+            if cached and cached.exists():
 
                 pygame.mixer.music.load(str(cached))
-
                 pygame.mixer.music.play()
 
                 while pygame.mixer.music.get_busy():
 
-                    if stop_event.is_set() or mic_interrupt.is_set() or interrupt_event.is_set():
+                    if (
+                        stop_event.is_set()
+                        or mic_interrupt.is_set()
+                        or interrupt_event.is_set()
+                    ):
                         pygame.mixer.music.stop()
                         pygame.mixer.music.unload()
-                        _store_resume(resume_sentences, i)
+                        session.mark_interrupted()
+                        resume_manager.save(session)
                         return
 
                     time.sleep(0.05)
 
                 pygame.mixer.music.unload()
-                return
+                session.advance()
+                continue
 
-
-            # ---------- Eleven ----------
-        if ELEVEN_AVAILABLE:
+            if ELEVEN_AVAILABLE:
 
                 try:
 
@@ -379,8 +374,13 @@ def _run_speak(text: str, intent: str = "chat", emotion: str = "neutral") -> Non
 
                         for chunk in audio_stream:
 
-                            if stop_event.is_set() or mic_interrupt.is_set() or interrupt_event.is_set():
-                                _store_resume(resume_sentences, i)
+                            if (
+                                stop_event.is_set()
+                                or mic_interrupt.is_set()
+                                or interrupt_event.is_set()
+                            ):
+                                session.mark_interrupted()
+                                resume_manager.save(session)
                                 return
 
                             if chunk:
@@ -392,56 +392,55 @@ def _run_speak(text: str, intent: str = "chat", emotion: str = "neutral") -> Non
                         speech_text,
                         VOICE_ID,
                         "eleven_turbo_v2_5",
-                        emotion,
+                        emotion.value if hasattr(emotion, "value") else emotion,
                     )
 
                     pygame.mixer.music.load(str(temp))
-
                     pygame.mixer.music.play()
 
                     while pygame.mixer.music.get_busy():
 
-                        if stop_event.is_set() or mic_interrupt.is_set() or interrupt_event.is_set():
+                        if (
+                            stop_event.is_set()
+                            or mic_interrupt.is_set()
+                            or interrupt_event.is_set()
+                        ):
                             pygame.mixer.music.stop()
                             pygame.mixer.music.unload()
-                            _store_resume(resume_sentences, i)
+                            session.mark_interrupted()
+                            resume_manager.save(session)
                             return
 
                         time.sleep(0.05)
 
                     pygame.mixer.music.unload()
+                    session.advance()
+                    continue
 
-                    return
-                
                 except Exception as e:
 
                     print(f"{Fore.RED}[ElevenLabs Disabled] {e}")
-
                     ELEVEN_AVAILABLE = False
 
+            speak_edge(speech_text)
+            session.advance()
 
-        # ---------- EDGE ----------
-        speak_edge(speech_text)
-        return
-
-
-        # All sentences played
-        _clear_resume()
+        session.playback_state = PlaybackState.COMPLETED
 
     except Exception as e:
+
         print(f"{Fore.RED}[VOICE ERROR] {e}")
         traceback.print_exc()
-        logging.exception("Voice Playback Crash")
+
         try:
-            engine.say(str(text))
+            engine.say(safe_text)
             engine.runAndWait()
-        except Exception as tts_e:
-            print(f"{Fore.RED}[VOICE FALLBACK ERROR] {tts_e}")
+        except Exception:
+            pass
 
     finally:
-        speaking_event.clear()
-        print(f"{Fore.CYAN}[TTS] Playback complete")
 
+        speaking_event.clear()  
 
 # ── Interrupt listener (original — unchanged) ─────────────────────────────────
 def _listen_for_interrupt() -> None:
@@ -455,14 +454,31 @@ def _listen_for_interrupt() -> None:
                 audio = recognizer.listen(source, phrase_time_limit=2)
             command = recognizer.recognize_google(audio).lower()
             if any(x in command for x in ["stop", "wait", "shut up", "silence", "mute", "pause"]):
+
                 print(f"{Fore.RED}[INTERRUPT] Voice stopped by user")
+
+                if current_session is not None:
+                    current_session.mark_interrupted()
+                    resume_manager.save(current_session)
+
                 stop_speaking()
                 mic_interrupt.set()
+
         except Exception:
-            pass
+            logger.exception("LISTENER CRASH")
+            traceback.print_exc()
+
         time.sleep(0.1)
 
 
+
 # ── Start background threads (original) ───────────────────────────────────────
-threading.Thread(target=_worker,               daemon=True).start()
-threading.Thread(target=_listen_for_interrupt, daemon=True).start()
+threading.Thread(
+    target=_worker,
+    daemon=True
+).start()
+
+#threading.Thread(
+#    target=_listen_for_interrupt,
+ #   daemon=True
+#).start()

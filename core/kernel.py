@@ -89,7 +89,7 @@ class Kernel:
 
     def _load_voice(self):
         try:
-            from voice import voice as voice_module
+            from voice.tts import voice as voice_module
 
             self.register_service(
                 "voice",
@@ -148,11 +148,13 @@ class Kernel:
         for callback in listeners:
             try:
                 result = callback(payload)
-            except Exception:
+
+            except Exception as e:
+                logging.exception("Kernel Event Crash")
                 traceback.print_exc()
-        logging.exception("Kernel Event Crash")
 
         return result
+
 
     # ---------------- QUERY PIPELINE ----------------
     def process_query(self, query: str):
@@ -166,8 +168,9 @@ class Kernel:
             return self.emit("workspace", query)
 
         tool_result = self.emit("tool", intent)
-        if tool_result:
-            return tool_result
+
+        if tool_result is not None:
+                return tool_result
 
         brain = self.get_service("brain")
 

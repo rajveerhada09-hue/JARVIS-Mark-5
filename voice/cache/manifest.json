@@ -98,5 +98,215 @@
         "last_used": "2026-07-16 19:01:48.700100",
         "hits": 1,
         "file": "26088fc189bfacab5ef54b0c809ec1d0d4db43de2253e4c38a59daa975006a1a.mp3"
+    },
+    "8af931963ea9d68dba29c83485fd9ce96670908f69e4e6563c13eb198406f7e4": {
+        "text": "Evening Rajveer. Systems online.",
+        "voice": "nPczCjzI2devNBz1zQrb",
+        "model": "eleven_turbo_v2_5",
+        "emotion": "neutral",
+        "created": "2026-07-16 20:50:50.111023",
+        "last_used": "2026-07-16 20:50:50.111023",
+        "hits": 1,
+        "file": "8af931963ea9d68dba29c83485fd9ce96670908f69e4e6563c13eb198406f7e4.mp3"
+    },
+    "2ac49c102ff1601106df36208a0c753c2ff7e4099d2b678103e841048b299610": {
+        "text": "Good evening Sir.",
+        "voice": "nPczCjzI2devNBz1zQrb",
+        "model": "eleven_turbo_v2_5",
+        "emotion": "neutral",
+        "created": "2026-07-17 19:04:21.094996",
+        "last_used": "2026-07-17 19:46:26.138194",
+        "hits": 2,
+        "file": "2ac49c102ff1601106df36208a0c753c2ff7e4099d2b678103e841048b299610.mp3"
+    },
+    "c056d04cac5ce998a4625041187cfe77620cfa9a81149bb16b098977eb12d16b": {
+        "text": "Still working?",
+        "voice": "nPczCjzI2devNBz1zQrb",
+        "model": "eleven_turbo_v2_5",
+        "emotion": "neutral",
+        "created": "2026-07-17 19:04:22.895578",
+        "last_used": "2026-07-17 19:46:27.349319",
+        "hits": 2,
+        "file": "c056d04cac5ce998a4625041187cfe77620cfa9a81149bb16b098977eb12d16b.mp3"
+    },
+    "537f80eaed092cdd662a7fe267232541fd6949e0169d3e1b91878050121aedcc": {
+        "text": "Evening Rajveer.",
+        "voice": "nPczCjzI2devNBz1zQrb",
+        "model": "eleven_turbo_v2_5",
+        "emotion": "neutral",
+        "created": "2026-07-17 19:38:51.942913",
+        "last_used": "2026-07-17 20:46:03.738657",
+        "hits": 3,
+        "file": "537f80eaed092cdd662a7fe267232541fd6949e0169d3e1b91878050121aedcc.mp3"
+    },
+    "e9845601e09f1f8bf47b22a15009c168a08955efa58f6cc18bcebc69377fc9ba": {
+        "text": "Systems are holding steady.",
+        "voice": "nPczCjzI2devNBz1zQrb",
+        "model": "eleven_turbo_v2_5",
+        "emotion": "neutral",
+        "created": "2026-07-17 19:38:53.576614",
+        "last_used": "2026-07-17 19:38:53.576614",
+        "hits": 1,
+        "file": "e9845601e09f1f8bf47b22a15009c168a08955efa58f6cc18bcebc69377fc9ba.mp3"
+    },
+    "a658340f6da959305b5610ff17219f4712e204f57c4e42c001d03d817dde0d60": {
+        "text": "Systems online.",
+        "voice": "nPczCjzI2devNBz1zQrb",
+        "model": "eleven_turbo_v2_5",
+        "emotion": "neutral",
+        "created": "2026-07-17 20:29:14.423004",
+        "last_used": "2026-07-17 20:29:14.423004",
+        "hits": 1,
+        "file": "a658340f6da959305b5610ff17219f4712e204f57c4e42c001d03d817dde0d60.mp3"
+    },
+    "967b2dbe9dcd9082753b7313fa7735a2ce5a280f3de69b8e66ad57ab5b773818": {
+        "text": "Evening Sir.",
+        "voice": "nPczCjzI2devNBz1zQrb",
+        "model": "eleven_turbo_v2_5",
+        "emotion": "neutral",
+        "created": "2026-07-17 20:33:31.249839",
+        "last_used": "2026-07-17 20:33:31.249839",
+        "hits": 1,
+        "file": "967b2dbe9dcd9082753b7313fa7735a2ce5a280f3de69b8e66ad57ab5b773818.mp3"
+    },
+    "0f96f3c9eb5f42d4b50dc56bb852182e6224f0605fa38cb5c7ea59aa4ac0ad93": {
+        "text": "Main ready hoon.",
+        "voice": "nPczCjzI2devNBz1zQrb",
+        "model": "eleven_turbo_v2_5",
+        "emotion": "neutral",
+        "created": "2026-07-17 20:33:33.772727",
+        "last_used": "2026-07-17 20:46:04.954225",
+        "hits": 2,
+        "file": "0f96f3c9eb5f42d4b50dc56bb852182e6224f0605fa38cb5c7ea59aa4ac0ad93.mp3"
+    },
+    "13ae394e4b38feda695433b4c701c61f4a45b65f93c8c7966044483075f053f3": {
+        "text": "Ho jayega Rajveer, Sir, abhi shaam ke 5 bajkar 4 minute ho rahe hain.",
+        "voice": "nPczCjzI2devNBz1zQrb",
+        "model": "eleven_turbo_v2_5",
+        "emotion": "friendly",
+        "created": "2026-07-17 20:34:08.528300",
+        "last_used": "2026-07-17 20:34:08.528300",
+        "hits": 1,
+        "file": "13ae394e4b38feda695433b4c701c61f4a45b65f93c8c7966044483075f053f3.mp3"
+    },
+    "9020b18b0d408e8ea7be0b0d324ed00e4be6ab3507b140f8d5990b28c78b95f4": {
+        "text": "Samajh gaya Rajveer, Sir, charbi par ek lambi kahaani?",
+        "voice": "nPczCjzI2devNBz1zQrb",
+        "model": "eleven_turbo_v2_5",
+        "emotion": "friendly",
+        "created": "2026-07-17 20:34:44.849630",
+        "last_used": "2026-07-17 20:34:44.849630",
+        "hits": 1,
+        "file": "9020b18b0d408e8ea7be0b0d324ed00e4be6ab3507b140f8d5990b28c78b95f4.mp3"
+    },
+    "c90fe167bb233c2f25b877fbf9725983e6a099704606551aa4fae3a9f4fe9563": {
+        "text": "Yeh toh ek anokhi farmaish hai.",
+        "voice": "nPczCjzI2devNBz1zQrb",
+        "model": "eleven_turbo_v2_5",
+        "emotion": "friendly",
+        "created": "2026-07-17 20:34:49.094233",
+        "last_used": "2026-07-17 20:34:49.094233",
+        "hits": 1,
+        "file": "c90fe167bb233c2f25b877fbf9725983e6a099704606551aa4fae3a9f4fe9563.mp3"
+    },
+    "477cee64d050630ba464da9dce70125539353fa4909f2b7f8f3105e3d3d585fd": {
+        "text": "Magar theek hai, chaliye aapko ek daawat aur usmein 'charbi' ke mahatva ki ek choti si gaatha sunata hoon.",
+        "voice": "nPczCjzI2devNBz1zQrb",
+        "model": "eleven_turbo_v2_5",
+        "emotion": "friendly",
+        "created": "2026-07-17 20:34:51.491276",
+        "last_used": "2026-07-17 20:34:51.491276",
+        "hits": 1,
+        "file": "477cee64d050630ba464da9dce70125539353fa4909f2b7f8f3105e3d3d585fd.mp3"
+    },
+    "b0d1708dba710d947c14a52d71cb42b14c09460f1859fc0ae1ca1880ce917fb0": {
+        "text": "Ek samay ki baat hai, gaon mein Ramu Kaka naam ke ek bade hoshiyar halwai the.",
+        "voice": "nPczCjzI2devNBz1zQrb",
+        "model": "eleven_turbo_v2_5",
+        "emotion": "friendly",
+        "created": "2026-07-17 20:34:58.639050",
+        "last_used": "2026-07-17 20:34:58.639050",
+        "hits": 1,
+        "file": "b0d1708dba710d947c14a52d71cb42b14c09460f1859fc0ae1ca1880ce917fb0.mp3"
+    },
+    "d68b4da94136714917340c4b64ef4641c6038c46a923c61279d52bbe6a42b601": {
+        "text": "Unke banaye 'Gajar ka Halwa' ki charcha door-door tak thi.",
+        "voice": "nPczCjzI2devNBz1zQrb",
+        "model": "eleven_turbo_v2_5",
+        "emotion": "friendly",
+        "created": "2026-07-17 20:35:03.932750",
+        "last_used": "2026-07-17 20:35:03.932750",
+        "hits": 1,
+        "file": "d68b4da94136714917340c4b64ef4641c6038c46a923c61279d52bbe6a42b601.mp3"
+    },
+    "5537d35f497fa94bcf43d255ff4ef92bd60b8ad2f53b4689e179bda0ebb1c590": {
+        "text": "Log kehte the ki usmein woh 'jaadu' tha jo aur kahin nahi milta.",
+        "voice": "nPczCjzI2devNBz1zQrb",
+        "model": "eleven_turbo_v2_5",
+        "emotion": "friendly",
+        "created": "2026-07-17 20:35:08.519392",
+        "last_used": "2026-07-17 20:35:08.519392",
+        "hits": 1,
+        "file": "5537d35f497fa94bcf43d255ff4ef92bd60b8ad2f53b4689e179bda0ebb1c590.mp3"
+    },
+    "63c33e5a5fbd4f84f16a3a0e287fbf51ec11b2d68443968f6d76621804ca708c": {
+        "text": "Ramu Kaka ka raaz sirf gajar aur cheeni nahi tha, balki woh shuddh desi ghee (jo ek tarah se 'charbi' hi hai, Sir) ka istemaal bade sanjeeda tareeke se karte the.",
+        "voice": "nPczCjzI2devNBz1zQrb",
+        "model": "eleven_turbo_v2_5",
+        "emotion": "friendly",
+        "created": "2026-07-17 20:35:13.179059",
+        "last_used": "2026-07-17 20:35:13.179059",
+        "hits": 1,
+        "file": "63c33e5a5fbd4f84f16a3a0e287fbf51ec11b2d68443968f6d76621804ca708c.mp3"
+    },
+    "a10cc50ce684093db5a6cfcfd6d941643502f17d6fb346b17d86cad6718439f2": {
+        "text": "Woh kehte the, \"Halwe ki asal jaan uski 'malai' aur ghee mein hoti hai.",
+        "voice": "nPczCjzI2devNBz1zQrb",
+        "model": "eleven_turbo_v2_5",
+        "emotion": "friendly",
+        "created": "2026-07-17 20:35:24.164809",
+        "last_used": "2026-07-17 20:35:24.164809",
+        "hits": 1,
+        "file": "a10cc50ce684093db5a6cfcfd6d941643502f17d6fb346b17d86cad6718439f2.mp3"
+    },
+    "31c9f7a1003eb3d8f3d8a8086d551c869c185c8eb2989020b04f2ddde2f7e964": {
+        "text": "Yeh sirf swaad nahi deta, balki usmein garmahat aur ek khas 'richness' bhi lata hai jo usse pure din yaadgar banati hai.\"\n\nEk baar, shehar se ek naye, 'health-conscious' yuvak gaon aaye.",
+        "voice": "nPczCjzI2devNBz1zQrb",
+        "model": "eleven_turbo_v2_5",
+        "emotion": "friendly",
+        "created": "2026-07-17 20:35:29.639707",
+        "last_used": "2026-07-17 20:35:29.639707",
+        "hits": 1,
+        "file": "31c9f7a1003eb3d8f3d8a8086d551c869c185c8eb2989020b04f2ddde2f7e964.mp3"
+    },
+    "10f2ce311f791397be8034643f376ec68a6fc1018c52203cad91f0698493cf56": {
+        "text": "Unhone Ramu Kaka se kaha, \"Kaka, itna ghee kyun dalte ho?",
+        "voice": "nPczCjzI2devNBz1zQrb",
+        "model": "eleven_turbo_v2_5",
+        "emotion": "friendly",
+        "created": "2026-07-17 20:35:41.769573",
+        "last_used": "2026-07-17 20:35:41.769573",
+        "hits": 1,
+        "file": "10f2ce311f791397be8034643f376ec68a6fc1018c52203cad91f0698493cf56.mp3"
+    },
+    "d420ac0e84b4bfb97fdb967a476160922da580677f6a451bc34cad5f6da8f9ea": {
+        "text": "Thoda kam karo, aajkal log charbi se darte hain.\" Ramu Kaka ne pehle toh uski baat suni aur ek batch kam ghee mein banaya.",
+        "voice": "nPczCjzI2devNBz1zQrb",
+        "model": "eleven_turbo_v2_5",
+        "emotion": "friendly",
+        "created": "2026-07-17 20:35:46.781679",
+        "last_used": "2026-07-17 20:35:46.781679",
+        "hits": 1,
+        "file": "d420ac0e84b4bfb97fdb967a476160922da580677f6a451bc34cad5f6da8f9ea.mp3"
+    },
+    "4833a62ada35bb70ce61be86c37a9e7416ebd7d03d648c3d4f79abd0e2e7ad40": {
+        "text": "Yes Sir?",
+        "voice": "nPczCjzI2devNBz1zQrb",
+        "model": "eleven_turbo_v2_5",
+        "emotion": "neutral",
+        "created": "2026-07-17 20:47:01.519289",
+        "last_used": "2026-07-17 20:47:01.519289",
+        "hits": 1,
+        "file": "4833a62ada35bb70ce61be86c37a9e7416ebd7d03d648c3d4f79abd0e2e7ad40.mp3"
     }
 }
