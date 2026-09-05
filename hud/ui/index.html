@@ -1,0 +1,605 @@
+/*
+============================================================
+PROJECT : JARVIS MARK 5
+
+FILE    : index.html
+
+PATH    : hud\ui\index.html
+
+PURPOSE :
+Module description pending.
+
+LAST UPDATED :
+2026-06-28
+
+============================================================
+*/
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>J.A.R.V.I.S. Mark 5</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body data-state="idle" data-mode="online" data-mem0-ready="false" data-personality-mode="friendly">
+
+  <!-- ══════════════════════════════════════ BACKGROUND -->
+  <div id="bg-layer">
+    <canvas id="particle-canvas"></canvas>
+    <div id="grid-overlay"></div>
+    <div id="scanline"></div>
+  </div>
+
+  <!-- ══════════════════════════════════════ TOP BAR -->
+  <header id="top-bar">
+    <div class="top-left">
+      <span class="label">SYSTEM</span>
+      <span id="connection-status" class="badge badge--online">● ONLINE</span>
+      <span id="ws-status" class="badge badge--dim">WS CONNECTED</span>
+    </div>
+    <div class="top-center">
+      <div id="clock-display">
+        <span id="time-hh">00</span><span class="colon blink">:</span><span id="time-mm">00</span><span class="colon blink">:</span><span id="time-ss">00</span>
+      </div>
+      <div id="date-display"></div>
+    </div>
+    <div class="top-right">
+      <!-- Active module indicator -->
+      <span id="active-module-label" class="label dim">MODULE: —</span>
+      <span class="label">J.A.R.V.I.S.</span>
+      <span class="label dim">MARK V</span>
+    </div>
+  </header>
+
+  <!-- ══════════════════════════════════════ MAIN HUD (Online mode) -->
+  <main id="hud-main">
+
+    <!-- ── LEFT PANEL ── -->
+    <aside id="panel-left" class="glass-panel">
+      <div class="panel-header">
+        <span class="panel-title">COGNITIVE LOG</span>
+        <div class="panel-line"></div>
+      </div>
+
+      <section class="panel-section">
+        <div class="section-label">CURRENT TASK</div>
+        <div id="current-task" class="task-display">Awaiting directive...</div>
+        <div id="task-progress-bar"><div id="task-progress-fill"></div></div>
+      </section>
+
+      <section class="panel-section">
+        <div class="section-label">CONVERSATION</div>
+        <div id="conversation-log">
+          <div class="log-entry log-entry--system">
+            <span class="log-tag">SYS</span>
+            <span class="log-text">J.A.R.V.I.S. online. All systems nominal.</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel-section">
+        <div class="section-label">MEMORY STATUS</div>
+        <div class="memory-grid">
+          <div class="mem-item">
+            <span class="mem-label">SHORT TERM</span>
+            <div class="mem-bar"><div class="mem-fill" style="width:34%"></div></div>
+            <span class="mem-val">34%</span>
+          </div>
+          <div class="mem-item">
+            <span class="mem-label">LONG TERM</span>
+            <div class="mem-bar"><div class="mem-fill" style="width:61%"></div></div>
+            <span class="mem-val">61%</span>
+          </div>
+          <div class="mem-item">
+            <span class="mem-label">CONTEXT</span>
+            <div class="mem-bar"><div class="mem-fill" style="width:18%"></div></div>
+            <span class="mem-val">18%</span>
+          </div>
+        </div>
+      </section>
+    </aside>
+
+    <!-- ── CENTER CORE ── -->
+    <section id="core-center">
+
+      <!-- Reactor assembly -->
+      <div id="reactor-assembly">
+        <div class="orbit orbit--1"><div class="orbit-node"></div></div>
+        <div class="orbit orbit--2"><div class="orbit-node"></div><div class="orbit-node orbit-node--2"></div></div>
+        <div class="orbit orbit--3"><div class="orbit-node"></div></div>
+
+        <!-- Circular wave rings (speaking) -->
+        <div id="speak-rings">
+          <div class="speak-ring"></div>
+          <div class="speak-ring"></div>
+          <div class="speak-ring"></div>
+        </div>
+
+        <div id="radar-sweep"></div>
+
+        <div id="reactor-core">
+          <div id="reactor-ring-outer"></div>
+          <div id="reactor-ring-mid"></div>
+          <div id="reactor-ring-inner"></div>
+          <div id="reactor-hexgrid"></div>
+          <div id="reactor-nucleus">
+            <div id="nucleus-pulse"></div>
+            <div id="nucleus-glow"></div>
+            <!-- Mic indicator (listening) -->
+            <div id="mic-indicator">
+              <span id="mic-icon">⌁</span>
+            </div>
+          </div>
+        </div>
+
+        <div id="ai-status-badge">
+          <div id="status-icon"></div>
+          <span id="status-label">IDLE</span>
+        </div>
+      </div>
+
+      <!-- Waveform -->
+      <div id="waveform-wrap">
+        <canvas id="waveform-canvas" width="440" height="60"></canvas>
+      </div>
+
+      <!-- Center micro-stats -->
+      <div id="center-stats">
+        <div class="cstat">
+          <span class="cstat-val" id="stat-uptime">00:00:00</span>
+          <span class="cstat-lbl">UPTIME</span>
+        </div>
+        <div class="cstat-divider"></div>
+        <div class="cstat">
+          <span class="cstat-val" id="stat-queries">0</span>
+          <span class="cstat-lbl">QUERIES</span>
+        </div>
+        <div class="cstat-divider"></div>
+        <div class="cstat">
+          <span class="cstat-val" id="stat-temp">--°C</span>
+          <span class="cstat-lbl">TEMP</span>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ── RIGHT PANEL ── -->
+    <aside id="panel-right" class="glass-panel">
+      <div class="panel-header">
+        <span class="panel-title">SYSTEM VITALS</span>
+        <div class="panel-line"></div>
+      </div>
+
+      <section class="panel-section">
+        <div class="section-label">PROCESSOR</div>
+        <div class="gauge-row">
+          <div class="gauge-arc-wrap">
+            <svg class="gauge-svg" viewBox="0 0 80 80">
+              <circle class="gauge-track" cx="40" cy="40" r="32" />
+              <circle class="gauge-fill" id="cpu-arc" cx="40" cy="40" r="32" stroke-dasharray="0 201" />
+            </svg>
+            <span class="gauge-val" id="cpu-val">0%</span>
+          </div>
+          <div class="gauge-info">
+            <div class="gauge-label">CPU USAGE</div>
+            <div class="gauge-sub" id="cpu-sub">-- cores active</div>
+            <div class="gauge-mini-bar"><div class="gmb-fill" id="cpu-bar" style="width:0%"></div></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel-section">
+        <div class="section-label">MEMORY</div>
+        <div class="gauge-row">
+          <div class="gauge-arc-wrap">
+            <svg class="gauge-svg" viewBox="0 0 80 80">
+              <circle class="gauge-track" cx="40" cy="40" r="32" />
+              <circle class="gauge-fill gauge-fill--ram" id="ram-arc" cx="40" cy="40" r="32" stroke-dasharray="0 201" />
+            </svg>
+            <span class="gauge-val" id="ram-val">0%</span>
+          </div>
+          <div class="gauge-info">
+            <div class="gauge-label">RAM USAGE</div>
+            <div class="gauge-sub" id="ram-sub">-- GB / -- GB</div>
+            <div class="gauge-mini-bar"><div class="gmb-fill gmb-fill--ram" id="ram-bar" style="width:0%"></div></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel-section">
+        <div class="section-label">STORAGE</div>
+        <div class="disk-bars" id="disk-bars">
+          <div class="disk-item">
+            <span class="disk-label">C: SYSTEM</span>
+            <div class="disk-bar-wrap"><div class="disk-bar-fill" id="disk-c" style="width:0%"></div></div>
+            <span class="disk-pct" id="disk-c-val">0%</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel-section">
+        <div class="section-label">NETWORK</div>
+        <div id="net-grid">
+          <div class="net-item">
+            <span class="net-icon">↑</span>
+            <span class="net-label">UPLOAD</span>
+            <span class="net-val" id="net-up">-- KB/s</span>
+          </div>
+          <div class="net-item">
+            <span class="net-icon">↓</span>
+            <span class="net-label">DOWNLOAD</span>
+            <span class="net-val" id="net-down">-- KB/s</span>
+          </div>
+          <div class="net-item">
+            <span class="net-icon">◈</span>
+            <span class="net-label">INTERNET</span>
+            <span class="net-val" id="net-inet">CHECKING</span>
+          </div>
+          <div class="net-item">
+            <span class="net-icon">⌁</span>
+            <span class="net-label">BATTERY</span>
+            <span class="net-val" id="stat-battery">--%</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel-section">
+        <div class="section-label">GPU</div>
+        <div class="gauge-row">
+          <div class="gauge-arc-wrap">
+            <svg class="gauge-svg" viewBox="0 0 80 80">
+              <circle class="gauge-track" cx="40" cy="40" r="32" />
+              <circle class="gauge-fill gauge-fill--gpu" id="gpu-arc" cx="40" cy="40" r="32" stroke-dasharray="0 201" />
+            </svg>
+            <span class="gauge-val" id="gpu-val">N/A</span>
+          </div>
+          <div class="gauge-info">
+            <div class="gauge-label">GPU USAGE</div>
+            <div class="gauge-sub" id="gpu-sub">PENDING INTEGRATION</div>
+            <div class="gauge-mini-bar"><div class="gmb-fill gmb-fill--gpu" id="gpu-bar" style="width:0%"></div></div>
+          </div>
+        </div>
+      </section>
+
+    </aside>
+  </main>
+
+  <!-- ══════════════════════════════════════ BOTTOM BAR -->
+  <footer id="bottom-bar">
+    <div id="notification-strip">
+      <span class="label">NOTIFICATIONS</span>
+      <div id="notif-list">
+        <span class="notif-item" id="notif-default">All systems operational.</span>
+      </div>
+    </div>
+    <div id="cmd-history">
+      <span class="label">LAST COMMAND</span>
+      <span id="last-cmd" class="cmd-text">—</span>
+    </div>
+    <div id="bottom-right-info">
+      <span class="label">PROCESSES</span>
+      <span id="proc-count" class="dim">-- active</span>
+    </div>
+  </footer>
+
+  <!-- ══════════════════════════════════════ OFFLINE OVERLAY -->
+  <div id="standby-overlay" class="mode-overlay" aria-hidden="true">
+    <div id="standby-vignette"></div>
+    <div id="standby-scanbar"></div>
+    <div id="standby-content">
+      <div id="standby-reactor">
+        <div class="sb-ring sb-ring--1"></div>
+        <div class="sb-ring sb-ring--2"></div>
+        <div class="sb-ring sb-ring--3"></div>
+        <div id="sb-nucleus"><div id="sb-nucleus-inner"></div></div>
+      </div>
+      <div id="standby-title">SYSTEM OFFLINE</div>
+      <div id="standby-subtitle">STARK INDUSTRIES — MARK V — PASSIVE MODE</div>
+      <div id="standby-grid">
+        <div class="sb-cell">
+          <div class="sb-cell-label">STATUS</div>
+          <div class="sb-cell-val" id="sb-status">DORMANT</div>
+        </div>
+        <div class="sb-cell">
+          <div class="sb-cell-label">CURRENT TIME</div>
+          <div class="sb-cell-val" id="sb-time">--:--:--</div>
+        </div>
+        <div class="sb-cell">
+          <div class="sb-cell-label">EXPECTED RETURN</div>
+          <div class="sb-cell-val" id="sb-return">—</div>
+        </div>
+        <div class="sb-cell">
+          <div class="sb-cell-label">COUNTDOWN</div>
+          <div class="sb-cell-val" id="sb-countdown">—</div>
+        </div>
+        <div class="sb-cell sb-cell--wide">
+          <div class="sb-cell-label">LAST DIRECTIVE</div>
+          <div class="sb-cell-val" id="sb-last-cmd">—</div>
+        </div>
+        <div class="sb-cell sb-cell--wide">
+          <div class="sb-cell-label">MONITORING</div>
+          <div class="sb-cell-val sb-cell-val--dim" id="sb-monitoring">PASSIVE SENSORS ACTIVE</div>
+        </div>
+      </div>
+      <div id="sb-pulse-line"></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════ PROCESSOR OVERLAY -->
+  <div id="processor-overlay" class="mode-overlay" aria-hidden="true">
+    <div id="proc-scanbar"></div>
+    <header id="proc-header">
+      <div class="proc-header-left">
+        <span class="proc-label">STARK INDUSTRIES</span>
+        <span class="proc-label proc-label--dim">NEURAL PROCESSING UNIT — MARK V</span>
+      </div>
+      <div class="proc-header-center">SYSTEM PROCESSOR</div>
+      <div class="proc-header-right">
+        <span class="proc-label" id="proc-header-time">--:--:--</span>
+        <button id="proc-close-btn" class="proc-btn">✕ EXIT DIAGNOSTICS</button>
+      </div>
+    </header>
+
+    <div id="proc-main">
+
+      <!-- Left hardware specs -->
+      <div id="proc-left-col" class="proc-col">
+        <div class="proc-section-title">HARDWARE DIAGNOSTICS</div>
+
+        <div class="proc-stat-block">
+          <div class="psb-label">CPU ARCHITECTURE</div>
+          <div class="psb-val" id="proc-cpu-arch">x86_64 — DETECTING...</div>
+          <div class="psb-bar-wrap"><div class="psb-bar psb-bar--cpu" id="proc-cpu-fill" style="width:0%"></div></div>
+          <div class="psb-sub" id="proc-cpu-pct">--% LOAD</div>
+        </div>
+
+        <div class="proc-stat-block">
+          <div class="psb-label">GPU</div>
+          <div class="psb-val" id="proc-gpu-name">DETECTING...</div>
+          <div class="psb-bar-wrap"><div class="psb-bar psb-bar--gpu" id="proc-gpu-fill" style="width:0%"></div></div>
+          <div class="psb-sub" id="proc-gpu-pct">--% UTIL</div>
+        </div>
+
+        <div class="proc-stat-block">
+          <div class="psb-label">VRAM</div>
+          <div class="psb-val" id="proc-vram">-- MB / -- MB</div>
+          <div class="psb-bar-wrap"><div class="psb-bar psb-bar--vram" id="proc-vram-fill" style="width:0%"></div></div>
+        </div>
+
+        <div class="proc-stat-block">
+          <div class="psb-label">SYSTEM RAM</div>
+          <div class="psb-val" id="proc-ram-detail">-- GB / -- GB</div>
+          <div class="psb-bar-wrap"><div class="psb-bar psb-bar--ram" id="proc-ram-fill" style="width:0%"></div></div>
+          <div class="psb-sub" id="proc-ram-pct">--% USAGE</div>
+        </div>
+
+        <div class="proc-stat-block">
+          <div class="psb-label">TEMPERATURE</div>
+          <div class="psb-val" id="proc-temp">-- °C</div>
+        </div>
+
+        <div class="proc-stat-block">
+          <div class="psb-label">POWER DRAW</div>
+          <div class="psb-val" id="proc-power">-- W</div>
+        </div>
+
+        <div class="proc-stat-block">
+          <div class="psb-label">CPU THREADS</div>
+          <div class="psb-val" id="proc-threads">--</div>
+        </div>
+
+        <div class="proc-stat-block">
+          <div class="psb-label">CLOCK SPEED</div>
+          <div class="psb-val" id="proc-clock">-- GHz</div>
+        </div>
+
+        <div class="proc-stat-block">
+          <div class="psb-label">BATTERY</div>
+          <div class="psb-val" id="proc-battery">--%</div>
+        </div>
+      </div>
+
+      <!-- Center chip + webcam -->
+      <div id="proc-center-col">
+        <div id="proc-chip-assembly">
+          <div class="chip-orbit chip-orbit--1"></div>
+          <div class="chip-orbit chip-orbit--2"></div>
+          <div class="chip-orbit chip-orbit--3"></div>
+          <div id="chip-scanring"></div>
+          <div id="proc-chip">
+            <div id="chip-grid"></div>
+            <div id="chip-lanes">
+              <div class="chip-lane chip-lane--h"></div>
+              <div class="chip-lane chip-lane--h chip-lane--2"></div>
+              <div class="chip-lane chip-lane--v"></div>
+              <div class="chip-lane chip-lane--v chip-lane--2"></div>
+            </div>
+            <div id="chip-core-ring"></div>
+            <div id="chip-core">
+              <div id="chip-core-pulse"></div>
+              <div id="chip-core-label">NPU</div>
+            </div>
+            <div id="chip-load-bar-wrap"><div id="chip-load-bar"></div></div>
+          </div>
+        </div>
+
+        <!-- IO strip -->
+        <div id="proc-io-strip">
+          <div class="proc-io-item">
+            <span class="proc-io-label">DISK READ</span>
+            <span class="proc-io-val" id="proc-disk-read">-- MB/s</span>
+          </div>
+          <div class="proc-io-item">
+            <span class="proc-io-label">DISK WRITE</span>
+            <span class="proc-io-val" id="proc-disk-write">-- MB/s</span>
+          </div>
+          <div class="proc-io-item">
+            <span class="proc-io-label">NET LATENCY</span>
+            <span class="proc-io-val" id="proc-latency">-- ms</span>
+          </div>
+          <div class="proc-io-item">
+            <span class="proc-io-label">NET SPEED</span>
+            <span class="proc-io-val" id="proc-net-speed">-- MB/s</span>
+          </div>
+          <div class="proc-io-item">
+            <span class="proc-io-label">RENDER FPS</span>
+            <span class="proc-io-val" id="proc-fps">-- fps</span>
+          </div>
+          <div class="proc-io-item">
+            <span class="proc-io-label">PY PROCESSES</span>
+            <span class="proc-io-val" id="proc-py-count">--</span>
+          </div>
+        </div>
+
+        <!-- Webcam panel -->
+        <div id="webcam-panel">
+          <div id="webcam-frame">
+            <div class="webcam-corner wc-tl"></div>
+            <div class="webcam-corner wc-tr"></div>
+            <div class="webcam-corner wc-bl"></div>
+            <div class="webcam-corner wc-br"></div>
+            <video id="webcam-video" autoplay playsinline muted></video>
+            <canvas id="webcam-overlay-canvas"></canvas>
+            <div id="webcam-hud-text">
+              <span id="webcam-status-text">CAMERA OFFLINE</span>
+            </div>
+            <div id="webcam-scanline"></div>
+          </div>
+          <div id="webcam-controls">
+            <button class="proc-btn" id="webcam-start-btn">▶ START CAM</button>
+            <button class="proc-btn" id="webcam-stop-btn" disabled>■ STOP CAM</button>
+            <button class="proc-btn" id="webcam-mirror-btn">⇆ MIRROR</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right module list -->
+      <div id="proc-right-col" class="proc-col">
+        <div class="proc-section-title">ACTIVE MODULES</div>
+        <div class="module-list" id="module-list">
+          <div class="module-item" data-module="whisper">
+            <div class="module-icon">◉</div>
+            <div class="module-info">
+              <div class="module-name">WHISPER STT</div>
+              <div class="module-desc">Speech Recognition Engine</div>
+            </div>
+            <div class="module-status" data-status="active">ACTIVE</div>
+          </div>
+          <div class="module-item" data-module="llm">
+            <div class="module-icon">◈</div>
+            <div class="module-info">
+              <div class="module-name">LLM CORE</div>
+              <div class="module-desc">Language Model Interface</div>
+            </div>
+            <div class="module-status" data-status="active">ACTIVE</div>
+          </div>
+          <div class="module-item" data-module="memory">
+            <div class="module-icon">⬡</div>
+            <div class="module-info">
+              <div class="module-name">MEMORY SYSTEM</div>
+              <div class="module-desc">Short / Long Term Storage</div>
+            </div>
+            <div class="module-status" data-status="active">ACTIVE</div>
+          </div>
+          <div class="module-item" data-module="automation">
+            <div class="module-icon">⚙</div>
+            <div class="module-info">
+              <div class="module-name">AUTOMATION</div>
+              <div class="module-desc">Task Execution Engine</div>
+            </div>
+            <div class="module-status" data-status="idle">IDLE</div>
+          </div>
+          <div class="module-item" data-module="browser">
+            <div class="module-icon">◫</div>
+            <div class="module-info">
+              <div class="module-name">BROWSER CTRL</div>
+              <div class="module-desc">Web Navigation Module</div>
+            </div>
+            <div class="module-status" data-status="idle">IDLE</div>
+          </div>
+          <div class="module-item" data-module="voice">
+            <div class="module-icon">⌁</div>
+            <div class="module-info">
+              <div class="module-name">VOICE ENGINE</div>
+              <div class="module-desc">TTS / Audio Output</div>
+            </div>
+            <div class="module-status" data-status="active">ACTIVE</div>
+          </div>
+          <div class="module-item" data-module="vision">
+            <div class="module-icon">◎</div>
+            <div class="module-info">
+              <div class="module-name">VISION MODULE</div>
+              <div class="module-desc">Image Analysis Pipeline</div>
+            </div>
+            <div class="module-status" data-status="offline">OFFLINE</div>
+          </div>
+          <div class="module-item" data-module="bg-services">
+            <div class="module-icon">▣</div>
+            <div class="module-info">
+              <div class="module-name">BG SERVICES</div>
+              <div class="module-desc">System Monitoring Daemons</div>
+            </div>
+            <div class="module-status" data-status="active">ACTIVE</div>
+          </div>
+        </div>
+
+        <div class="proc-section-title" style="margin-top:16px">STORAGE & SERVICES</div>
+        <div class="proc-stat-block">
+          <div class="psb-label">PRIMARY VOLUME</div>
+          <div class="psb-val" id="proc-storage">-- GB USED</div>
+          <div class="psb-bar-wrap"><div class="psb-bar psb-bar--cpu" id="proc-storage-fill" style="width:0%"></div></div>
+        </div>
+        <div class="proc-stat-block">
+          <div class="psb-label">BACKGROUND SERVICES</div>
+          <div class="psb-val" id="proc-bg-count">-- running</div>
+        </div>
+        <div class="proc-stat-block">
+          <div class="psb-label">GPU UTILIZATION</div>
+          <div class="psb-bar-wrap"><div class="psb-bar psb-bar--gpu" id="proc-gpu-util-fill" style="width:0%"></div></div>
+          <div class="psb-sub" id="proc-gpu-util-pct">-- %</div>
+        </div>
+      </div>
+
+    </div><!-- /proc-main -->
+  </div><!-- /processor-overlay -->
+
+  <!-- ══════════════════════════════════════ BOOT OVERLAY -->
+  <div id="boot-overlay">
+    <div id="boot-content">
+      <div id="boot-logo">J.A.R.V.I.S.</div>
+      <div id="boot-sub">JUST A RATHER VERY INTELLIGENT SYSTEM — MARK V</div>
+      <div id="boot-bar-wrap"><div id="boot-bar"></div></div>
+      <div id="boot-status">INITIALIZING CORE SYSTEMS...</div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════ MODE DOCK -->
+  <nav id="mode-dock">
+    <button class="mode-btn mode-btn--active" data-mode="online"    title="Online Mode">◉ ONLINE</button>
+    <button class="mode-btn"                  data-mode="standby"   title="Offline / Standby">◔ OFFLINE</button>
+    <button class="mode-btn"                  data-mode="processor" title="System Processor">⬡ PROCESSOR</button>
+  </nav>
+
+  <!-- ══════════════════════════════════════ SCRIPTS (load order matters) -->
+  <!--
+    LOAD ORDER:
+      1. script.js          — core runtime, STATE, WS, gauges, public API
+      2. widget_engine.js   — widget layer (needs JARVIS global from script.js)
+      3. memory_hud.js      — memory UI + Mem0 integration layer
+      4. transition_manager — mode switching choreography
+      5. online_mode.js     — online mode side-effects
+      6. offline_mode.js    — standby overlay logic
+      7. processor_mode.js  — chip animation, webcam, live stats mirror
+  -->
+  <script src="script.js"></script>
+  <script src="widget_engine.js"></script>
+  <script src="memory_hud.js"></script>
+  <script src="transition_manager.js"></script>
+  <script src="online_mode.js"></script>
+  <script src="offline_mode.js"></script>
+  <script src="processor_mode.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,31 @@
+{
+    "assistant_name": "JARVIS Mark V",
+    "user_name": "Rajveer",
+    "wake_words": [
+        "jarvis",
+        "jarves",
+        "jarvice",
+        "jarwis",
+        "jervis",
+        "garvis",
+        "hey jarvisjarvice"
+    ],
+    "model_primary": "gemini-2.5-flash",
+    "model_fallback": "",
+    "voice_provider": "",
+    "voice_id": "",
+    "voice_rate": 135,
+    "voice_volume": 1.0,
+    "voice_interrupt": true,
+    "voice_cache_dir": ".voice_cache",
+    "startup_audio": true,
+    "startup_audio_volume": 25,
+    "memory_enabled": true,
+    "memory_file": "memory_db.json",
+    "hud_enabled": true,
+    "hud_port": 8000,
+    "offline_mode": false,
+    "cache_dir": ".voice_cache",
+    "log_dir": "logs",
+    "models_dir": "models"
+}
