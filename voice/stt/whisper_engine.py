@@ -166,9 +166,8 @@ class WhisperEngine:
 
     # ============================================================
 
-        _engine = WhisperEngine()
+_engine = WhisperEngine()
 
 
-        def get_engine():
-
-            return _engine
+def get_engine():
+    return _engine

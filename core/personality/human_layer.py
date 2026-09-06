@@ -226,7 +226,7 @@ class HumanLayer:
         """Original method — unchanged."""
         emojis = {
             "happy": "😎", "excited": "🔥", "thinking": "🤔",
-            "warning": "⚠️", "sad": "😔",
+            "warning": "[WARN]️", "sad": "😔",
         }
         emoji = emojis.get(emotion, "")
         return f"{emoji} {text}" if emoji else text

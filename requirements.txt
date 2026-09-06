@@ -8,6 +8,16 @@ requests
 aiohttp
 aiohttp-retry
 
+# STT Providers
+deepgram-sdk
+openai
+
+# Wakeword
+openwakeword
+
+# TTS
+edge-tts
+
 pyttsx3
 pyaudio
 

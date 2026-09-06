@@ -37,13 +37,13 @@ from queue import Queue, Empty
 import pygame
 import pyttsx3
 from dotenv import load_dotenv
-from voice.edge_fallback import speak_edge
-from voice.cache_manager import VoiceCacheManager
+from voice.tts.edge_fallback import speak_edge
+from voice.tts.cache_manager import VoiceCacheManager
 from elevenlabs import ElevenLabs
 from pathlib import Path
 from colorama import Fore, init
-from voice.voice_session import VoiceSession, Emotion, PlaybackState
-from voice.resume_manager import resume_manager
+from voice.core.voice_session import VoiceSession, Emotion, PlaybackState
+from voice.core.resume_manager import resume_manager
 from utils.logger import logger
 init(autoreset=True)
 load_dotenv()
@@ -188,7 +188,7 @@ def speak(text: str, intent: str = "chat", priority: bool = False) -> None:
 
         voice_queue.put(session)
         speaking_event.set()
-        print(f"{Fore.CYAN}[TTS] Queued → intent={intent}, emotion={emotion}")
+        print(f"{Fore.CYAN}[TTS] Queued -> intent={intent}, emotion={emotion}")
     except Exception as e:
         print(f"{Fore.RED}[TTS ERROR] {e}")
         traceback.print_exc()
@@ -259,7 +259,7 @@ def _worker() -> None:
             current_session = session
 
             print(
-                f"{Fore.CYAN}[TTS] Worker → "
+                f"{Fore.CYAN}[TTS] Worker -> "
                 f"intent={session.intent}, emotion={session.emotion}"
             )
 
@@ -304,7 +304,7 @@ def _run_speak(session: VoiceSession) -> None:
             {"stability": 0.75, "style": 0.3},
         )
 
-        print(f"{Fore.CYAN}🤖 JARVIS: {safe_text}")
+        print(f"{Fore.CYAN}[BOT] JARVIS: {safe_text}")
 
         while not session.is_complete:
 

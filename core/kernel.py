@@ -46,7 +46,7 @@ class Kernel:
 
     def _load_memory(self):
         try:
-            from memory.memory_engine import MemoryEngine
+            from core.memory.memory_engine import MemoryEngine
             memory = MemoryEngine()
 
             self.register_service("memory", memory)

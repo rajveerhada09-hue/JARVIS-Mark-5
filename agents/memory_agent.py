@@ -16,7 +16,7 @@ from typing import Any, Optional, Tuple
 
 from agents.base_agent import BaseAgent
 from agents.task_queue import Task
-from memory.memory_manager import MemoryManager
+from core.memory.memory_manager import MemoryManager
 
 
 class MemoryAgent(BaseAgent):  

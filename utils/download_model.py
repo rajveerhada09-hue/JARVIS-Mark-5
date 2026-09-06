@@ -30,7 +30,7 @@ def download_whisper_medium():
         local_dir_use_symlinks=False
     )
 
-    print("\n✅ Model downloaded successfully at:", local_dir)
+    print("\n[OK] Model downloaded successfully at:", local_dir)
 
 
 if __name__ == "__main__":

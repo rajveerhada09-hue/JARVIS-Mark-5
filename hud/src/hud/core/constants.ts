@@ -7,7 +7,7 @@ import type {
   SystemStatus,
   ThemeConfig,
   WidgetId,
-} from '@/types';
+} from '../../types';
 
 export const AI_TO_SYSTEM_STATUS: Record<AIState, SystemStatus> = {
   idle: 'ONLINE',

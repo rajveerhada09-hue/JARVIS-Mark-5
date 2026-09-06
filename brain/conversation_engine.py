@@ -13,7 +13,7 @@ CHANGES vs original:
      giving instant natural Hinglish replies from response_variations pools.
   5. Added _clean_ai_phrases() — strips ChatGPT phrases from LLM output.
   6. Added return-greeting detection ("i'm back", "aa gaya").
-  7. Emotion → voice intent forwarded to speak() via voice.py 'intent' param.
+  7. Emotion -> voice intent forwarded to speak() via voice.py 'intent' param.
   8. All existing signatures, imports and function names preserved.
   9. No new files created — only this file modified.
 
@@ -36,7 +36,7 @@ from brain.emotion_detector import detect_emotion
 from brain.context_engine import ContextEngine
 from brain.response_variations import confirm_variation, opening_variation, quick
 from core.importance_scorer import ImportanceScorer
-from memory.mem0_adapter import Mem0Adapter
+from core.memory.mem0_adapter import Mem0Adapter
 
 
 # ─── AI phrase blacklist (regex) ─────────────────────────────────────────────
@@ -169,7 +169,7 @@ class ConversationEngine:
         elif mood == "technical":
             self.human.set_mode("admin")
 
-        # Map mood → TTS intent for voice.py VoiceBrain
+        # Map mood -> TTS intent for voice.py VoiceBrain
         voice_intent = {
             "frustrated": "system",
             "technical":  "system",

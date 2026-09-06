@@ -22,7 +22,7 @@ from __future__ import annotations
 import threading
 from typing import Optional
 
-from voice.voice_session import (
+from voice.core.voice_session import (
     VoiceSession,
     PlaybackState,
 )

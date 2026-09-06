@@ -82,12 +82,12 @@ logging.basicConfig(filename='logs/jarvis_brain.log', level=logging.INFO)
 
 from core.personality.human_layer import HumanLayer
 from core.personality.persona_engine import PersonaEngine
-from memory.memory_engine import MemoryEngine
+from core.memory.memory_engine import MemoryEngine
 from brain.conversation_engine import ConversationEngine
-from memory.memory_router import MemoryRouter
+from core.memory.memory_router import MemoryRouter
 from brain.context_engine import ContextEngine
 from brain.knowledge_graph import KnowledgeGraph
-from memory.profile_manager import ProfileManager
+from core.memory.profile_manager import ProfileManager
 from agents.agent_manager import AgentManager
 from agents.goal_parser import GoalParser
 from agents.mission_manager import MissionManager
@@ -111,13 +111,13 @@ class JarvisBrain:
         self.current_mode = self.load_mode()
         self.human_layer.set_mode(self.current_mode)
 
-        print(Fore.CYAN + f"🧠 God Mode Brain Initialized | Mode: {self.current_mode.upper()}")
+        print(Fore.CYAN + f"[BRAIN] God Mode Brain Initialized | Mode: {self.current_mode.upper()}")
 
         self.ollama_model = "qwen2:7b"
         # NEW: primary LLM is Gemini (per jarvis_config.json model_primary),
         # Ollama remains the local fallback — see _local_llm_response().
         self.gemini_model = self._load_gemini_model_name()
-        print(Fore.GREEN + f"✅ | Gemini primary → {self.gemini_model}")
+        print(Fore.GREEN + f"[OK] | Gemini primary -> {self.gemini_model}")
 
         self.personality_prompt = self.get_god_mode_prompt()
 

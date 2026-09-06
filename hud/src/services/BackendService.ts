@@ -1,4 +1,4 @@
-import type { WSMessage, SystemStats, AIState, ConversationMessage } from '@/types';
+import type { WSMessage, SystemStats, AIState, ConversationMessage } from '../types';
 
 export type BackendEventHandler = (msg: WSMessage) => void;
 

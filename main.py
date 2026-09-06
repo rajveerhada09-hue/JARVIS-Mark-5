@@ -8,7 +8,6 @@ PURPOSE : Bootstrap layer only. Initializes the kernel and runs the voice loop.
 ============================================================
 """
 
-
 import json
 import os
 import signal
@@ -25,13 +24,14 @@ from colorama import Fore, init
 from dotenv import load_dotenv
 
 from core.kernel import Kernel
+from core.hud_client import send_hud_state, send_hud_stats, send_hud_message, send_hud_notification, send_hud_provider_status
 from utils.logger import logger
 from core.greeting_manager import time_aware_greeting
 from core.startup_audio import play_startup_audio
-from voice.stt.speech import listen
+from voice.stt.speech import listen, get_stt_status
 from voice.wakeword.wakeword import wait_for_wakeword
 from voice.tts.voice import is_speaking, speak
-
+from core.system_monitor import get_system_stats
 
 warnings.filterwarnings("ignore")
 init(autoreset=True)
@@ -45,17 +45,21 @@ stop_event = threading.Event()
 conversation_mode = False
 conversation_timeout = 0
 
-def global_exception(exc_type, exc_value, exc_traceback):
+# Stats update thread
+_stats_thread = None
+_stats_running = False
 
+
+def global_exception(exc_type, exc_value, exc_traceback):
     logger.exception(
         "UNCAUGHT EXCEPTION",
         exc_info=(exc_type, exc_value, exc_traceback),
     )
-
     sys.__excepthook__(exc_type, exc_value, exc_traceback)
 
 
 sys.excepthook = global_exception
+
 
 def load_config():
     try:
@@ -108,17 +112,45 @@ def start_startup_audio():
         daemon=True
     ).start()
 
+
 def safe_thread(target):
-
     def wrapper():
-
         try:
             target()
-
         except Exception:
             logger.exception("THREAD CRASH")
-
     return wrapper
+
+
+def _stats_loop():
+    """Background thread to send system stats to HUD"""
+    global _stats_running
+    _stats_running = True
+    while _stats_running and not stop_event.is_set():
+        try:
+            stats_str = get_system_stats()
+            # Parse the stats string into a dict
+            stats = {}
+            for part in stats_str.split(" | "):
+                if ": " in part:
+                    key, val = part.split(": ", 1)
+                    stats[key.lower().replace(" ", "_")] = val.replace("%", "")
+            send_hud_stats(stats)
+        except Exception:
+            pass
+        time.sleep(2)
+
+
+def start_stats_thread():
+    global _stats_thread
+    if _stats_thread is None or not _stats_thread.is_alive():
+        _stats_thread = threading.Thread(target=_stats_loop, daemon=True)
+        _stats_thread.start()
+
+
+def stop_stats_thread():
+    global _stats_running
+    _stats_running = False
 
 
 def boot_sequence(config):
@@ -127,13 +159,26 @@ def boot_sequence(config):
 
         kernel.initialize()
 
+        # Send initial provider status to HUD
+        stt_status = get_stt_status()
+        send_hud_provider_status(
+            stt_status.get("current_provider", "unknown"),
+            stt_status.get("available_providers", [])
+        )
+
         greeting = time_aware_greeting(
             memory=kernel.get_service("memory")
         )
 
+        send_hud_state("speaking")
+        send_hud_message("assistant", greeting)
         speak(greeting)
 
         launch_hud()
+        start_stats_thread()
+
+        send_hud_state("idle")
+        send_hud_notification("JARVIS Mark 5 systems online")
 
         return True
 
@@ -144,10 +189,12 @@ def boot_sequence(config):
 
 def graceful_shutdown():
     print(Fore.YELLOW + "[SYSTEM] Shutting down...")
+    stop_stats_thread()
     try:
         kernel.shutdown()
     except Exception:
         pass
+    send_hud_state("offline")
     stop_event.set()
 
 
@@ -159,20 +206,22 @@ def run_voice_loop():
     global conversation_mode, conversation_timeout
 
     while not stop_event.is_set():
-
         try:
-
             # Wait until wake word is detected
             if not conversation_mode:
+                send_hud_state("idle")
                 wait_for_wakeword()
                 conversation_mode = True
                 conversation_timeout = time.time() + 40
+                send_hud_state("listening")
+                send_hud_notification("Listening...")
                 speak("Yes Sir?")
 
             if is_speaking():
                 time.sleep(0.1)
                 continue
 
+            send_hud_state("listening")
             text = listen()
 
             if not text:
@@ -180,34 +229,40 @@ def run_voice_loop():
                     conversation_mode = False
                 continue
 
+            send_hud_state("thinking")
+            send_hud_message("user", text)
             print(f"USER: {text}")
 
             reply = kernel.process_query(text)
 
             if reply:
-                print(f"🤖 JARVIS: {reply}")
+                send_hud_state("speaking")
+                send_hud_message("assistant", reply)
+                print(f"[BOT] JARVIS: {reply}")
                 speak(reply)
 
             conversation_timeout = time.time() + 40
 
         except Exception:
             logger.exception("Voice Loop Crash")
+            send_hud_state("error")
+            time.sleep(1)
 
 
 def main():
     config = load_config()
-    
 
     signal.signal(signal.SIGINT, handle_shutdown)
     signal.signal(signal.SIGTERM, handle_shutdown)
 
     threading.Thread(
-    target=safe_thread(start_hud_server),
-    daemon=True
-).start()
+        target=safe_thread(start_hud_server),
+        daemon=True
+    ).start()
+
     boot_sequence(config)
 
-    print(Fore.GREEN + "✅ JARVIS Mark 5 Fully Loaded & Ready!")
+    print(Fore.GREEN + "[OK] JARVIS Mark 5 Fully Loaded & Ready!")
     run_voice_loop()
     graceful_shutdown()
 

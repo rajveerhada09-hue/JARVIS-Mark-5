@@ -18,7 +18,7 @@ LAST UPDATED :
 from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, List, Optional
 
-from memory.memory_engine import MemoryEngine
+from core.memory.memory_engine import MemoryEngine
 from agents.planning_utils import generate_id, normalize_mission_status, timestamp_now
 from agents.task_queue import TaskQueue, Task
 
