@@ -10,7 +10,7 @@
         "garvis",
         "hey jarvisjarvice"
     ],
-    "model_primary": "gemini-2.5-flash",
+    "model_primary": "gemini-3.6-flash",
     "model_fallback": "",
     "voice_provider": "",
     "voice_id": "",
@@ -22,7 +22,7 @@
     "startup_audio_volume": 25,
     "memory_enabled": true,
     "memory_file": "memory_db.json",
-    "hud_enabled": true,
+    "hud_enabled": false,
     "hud_port": 8000,
     "offline_mode": false,
     "cache_dir": ".voice_cache",

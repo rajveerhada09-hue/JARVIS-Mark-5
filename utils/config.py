@@ -51,7 +51,7 @@ DEFAULT_CONFIG = {
         "jarwis",
         "jervis",
         "garvis",
-        "hey jarvis"
+        "hey jarvis",
         "jarvice"
     ],
 
@@ -59,7 +59,7 @@ DEFAULT_CONFIG = {
     # AI Models
     # --------------------------------------------------------
 
-    "model_primary": "gemini-2.5-flash",
+    "model_primary": "gemini-3.6-flash",
     "model_fallback": "",
 
     # --------------------------------------------------------
@@ -98,7 +98,7 @@ DEFAULT_CONFIG = {
     # HUD
     # --------------------------------------------------------
 
-    "hud_enabled": True,
+    "hud_enabled": False,
 
     "hud_port": 8000,
 

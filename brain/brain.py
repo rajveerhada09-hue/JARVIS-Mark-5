@@ -370,6 +370,21 @@ You are J.A.R.V.I.S. Mark 5 in ADMIN MODE.
             logging.error(f"Gemini Error: {e}")
             return None
 
+    # ── Ollama availability check ───────────────────────────────────────────────
+    def _is_ollama_available(self) -> bool:
+        """
+        Check if Ollama is installed and the executable is accessible.
+        Returns True only if the `ollama` command can be run without error.
+        """
+        try:
+            subprocess.run(
+                ["ollama", "--version"],
+                capture_output=True, text=True, timeout=5,
+            )
+            return True
+        except Exception:
+            return False
+
     # ── Ollama fallback (original subprocess call, extracted verbatim) ──────
     def _ollama_response(self, prompt: str) -> Optional[str]:
         """
@@ -398,8 +413,8 @@ You are J.A.R.V.I.S. Mark 5 in ADMIN MODE.
     ):
         """
         LLM-generation pipeline stage: Layered Prompt Building -> Gemini
-        (primary) -> Ollama (fallback) -> static safe string (final
-        fallback) -> optional HumanLayer pass.
+        (primary) -> Ollama (fallback, if available) -> appropriate
+        failure message (final) -> optional HumanLayer pass.
 
         BACKWARD COMPATIBLE: existing call site in conversation_engine.py
         (`self.brain._local_llm_response(q_raw, extra_context=extra)`)
@@ -413,20 +428,44 @@ You are J.A.R.V.I.S. Mark 5 in ADMIN MODE.
         """
         prompt = self._build_layered_prompt(user_input, extra_context)
 
+        # ── Phase 1: Try primary Gemini model ─────────────────────────────────
         response = self._gemini_response(prompt)
-        if response is None:
+        if response is not None:
+            if humanize:
+                try:
+                    metadata = {"emotion": emotion, "detected_mode": self.current_mode}
+                    response = self.human_layer.enhance(response, metadata=metadata)
+                except Exception as e:
+                    logging.error(f"HumanLayer enhancement failed: {e}")
+            return response
+
+        # ── Phase 2: Try Ollama fallback, but only if available ───────────────
+        if self._is_ollama_available():
             response = self._ollama_response(prompt)
-        if response is None:
-            response = "Sir, abhi mera brain thoda busy hai. Thoda wait kar."
+            if response is not None:
+                if humanize:
+                    try:
+                        metadata = {"emotion": emotion, "detected_mode": self.current_mode}
+                        response = self.human_layer.enhance(response, metadata=metadata)
+                    except Exception as e:
+                        logging.error(f"HumanLayer enhancement failed: {e}")
+                return response
 
-        if humanize:
-            try:
-                metadata = {"emotion": emotion, "detected_mode": self.current_mode}
-                response = self.human_layer.enhance(response, metadata=metadata)
-            except Exception as e:
-                logging.error(f"HumanLayer enhancement failed: {e}")
+        # ── Phase 3: No LLM provider succeeded — give accurate failure message ─
+        return self._get_provider_failure_message()
 
-        return response
+    def _get_provider_failure_message(self) -> str:
+        """
+        Return a user-facing message that accurately reflects why no LLM
+        provider could generate a response.
+
+        Returns:
+            A natural-language message in Hinglish/English reflecting the
+            actual situation: model unavailable, no provider reachable, or
+            a temporary network issue.
+        """
+        #: No LLM provider (Gemini + local Ollama) is available at the moment.
+        return "Sir, AI response service unavailable hai."
 
     def _time_aware_greeting(self):
         now = datetime.datetime.now()

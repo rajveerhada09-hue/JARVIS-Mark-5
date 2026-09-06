@@ -174,7 +174,6 @@ def boot_sequence(config):
         send_hud_message("assistant", greeting)
         speak(greeting)
 
-        launch_hud()
         start_stats_thread()
 
         send_hud_state("idle")
